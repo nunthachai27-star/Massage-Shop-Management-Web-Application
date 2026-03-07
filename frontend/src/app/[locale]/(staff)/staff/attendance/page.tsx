@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { therapists } from "@/data/therapists";
+import { therapists as mockTherapists } from "@/data/therapists";
+import { api } from "@/lib/api";
+import { transformTherapist } from "@/lib/transform";
 
 interface AttendanceRecord {
+  id?: number;
   therapistId: number;
   status: "checked_in" | "checked_out" | "not_checked_in";
   checkInTime?: string;
@@ -24,28 +27,67 @@ const initialAttendance: AttendanceRecord[] = [
 export default function AttendancePage() {
   const t = useTranslations();
   const locale = useLocale();
+  const [therapists, setTherapists] = useState(mockTherapists);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>(initialAttendance);
 
-  const handleCheckIn = (therapistId: number) => {
+  useEffect(() => {
+    api.getTherapists().then((raw) => setTherapists(raw.map(transformTherapist))).catch(() => {});
+    api.getTodayAttendance().then((records) => {
+      if (Array.isArray(records) && records.length > 0) {
+        setAttendance(records.map((r: any) => ({
+          id: r.id,
+          therapistId: r.therapist_id || r.therapistId,
+          status: r.check_out_time ? "checked_out" : "checked_in",
+          checkInTime: r.check_in_time ? new Date(r.check_in_time).toLocaleTimeString("th", { hour: "2-digit", minute: "2-digit" }) : undefined,
+          checkOutTime: r.check_out_time ? new Date(r.check_out_time).toLocaleTimeString("th", { hour: "2-digit", minute: "2-digit" }) : undefined,
+        })));
+      }
+    }).catch(() => {});
+  }, []);
+
+  const handleCheckIn = async (therapistId: number) => {
     const now = new Date();
     const timeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-    setAttendance((prev) =>
-      prev.map((record) =>
-        record.therapistId === therapistId
-          ? { ...record, status: "checked_in" as const, checkInTime: timeStr }
-          : record
-      )
-    );
+    try {
+      const result = await api.checkIn(therapistId);
+      setAttendance((prev) => {
+        const exists = prev.find((r) => r.therapistId === therapistId);
+        if (exists) {
+          return prev.map((record) =>
+            record.therapistId === therapistId
+              ? { ...record, id: result.id, status: "checked_in" as const, checkInTime: timeStr }
+              : record
+          );
+        }
+        return [...prev, { id: result.id, therapistId, status: "checked_in" as const, checkInTime: timeStr }];
+      });
+    } catch {
+      setAttendance((prev) =>
+        prev.map((record) =>
+          record.therapistId === therapistId
+            ? { ...record, status: "checked_in" as const, checkInTime: timeStr }
+            : record
+        )
+      );
+    }
   };
 
-  const handleCheckOut = (therapistId: number) => {
+  const handleCheckOut = async (therapistId: number) => {
     const now = new Date();
     const timeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+    const record = attendance.find((a) => a.therapistId === therapistId);
+    try {
+      if (record?.id) {
+        await api.checkOut(record.id);
+      }
+    } catch {
+      // fallback to local state
+    }
     setAttendance((prev) =>
-      prev.map((record) =>
-        record.therapistId === therapistId
-          ? { ...record, status: "checked_out" as const, checkOutTime: timeStr }
-          : record
+      prev.map((r) =>
+        r.therapistId === therapistId
+          ? { ...r, status: "checked_out" as const, checkOutTime: timeStr }
+          : r
       )
     );
   };

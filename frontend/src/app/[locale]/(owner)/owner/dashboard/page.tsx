@@ -1,7 +1,9 @@
 import { getTranslations } from "next-intl/server";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { bookings } from "@/data/bookings";
+import { bookings as mockBookings, type Booking } from "@/data/bookings";
+import { api } from "@/lib/api";
+import { transformBooking } from "@/lib/transform";
 
 const metrics = [
   { labelKey: "owner.totalCustomers", value: "12", icon: "👥" },
@@ -11,6 +13,14 @@ const metrics = [
 
 export default async function OwnerDashboardPage() {
   const t = await getTranslations();
+
+  let bookings: Booking[];
+  try {
+    const raw = await api.getBookings();
+    bookings = raw.map(transformBooking);
+  } catch {
+    bookings = mockBookings;
+  }
 
   const statusCounts = bookings.reduce(
     (acc, b) => {

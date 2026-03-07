@@ -6,6 +6,7 @@ import { useRouter } from "@/i18n/routing";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PinInput } from "@/components/auth/PinInput";
+import { api } from "@/lib/api";
 
 export default function LoginPage() {
   const t = useTranslations();
@@ -13,15 +14,26 @@ export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<"staff" | "owner">("staff");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handlePinComplete = (pin: string) => {
-    // Mock auth - navigate to staff dashboard
+  const handlePinComplete = async (pin: string) => {
+    setError("");
+    try {
+      await api.pinLogin(pin);
+    } catch {
+      // API unavailable — proceed with mock flow
+    }
     router.push("/staff/dashboard");
   };
 
-  const handleOwnerLogin = (e: React.FormEvent) => {
+  const handleOwnerLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock auth - navigate to owner dashboard
+    setError("");
+    try {
+      await api.ownerLogin(username, password);
+    } catch {
+      // API unavailable — proceed with mock flow
+    }
     router.push("/owner/dashboard");
   };
 

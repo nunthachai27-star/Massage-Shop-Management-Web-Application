@@ -2,11 +2,21 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { services } from "@/data/services";
+import { services as mockServices, type Service } from "@/data/services";
+import { api } from "@/lib/api";
+import { transformService } from "@/lib/transform";
 
 export default async function HomePage() {
   const t = await getTranslations();
   const locale = (await getLocale()) as "th" | "en";
+
+  let services: Service[];
+  try {
+    const raw = await api.getServices();
+    services = raw.map(transformService);
+  } catch {
+    services = mockServices;
+  }
 
   return (
     <>

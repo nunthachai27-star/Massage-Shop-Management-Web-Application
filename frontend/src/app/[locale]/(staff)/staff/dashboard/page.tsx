@@ -1,10 +1,12 @@
 import { getTranslations } from "next-intl/server";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { beds } from "@/data/beds";
-import { bookings } from "@/data/bookings";
-import { services } from "@/data/services";
-import { therapists } from "@/data/therapists";
+import { beds as mockBeds, type Bed } from "@/data/beds";
+import { bookings as mockBookings, type Booking } from "@/data/bookings";
+import { services as mockServices, type Service } from "@/data/services";
+import { therapists as mockTherapists, type Therapist } from "@/data/therapists";
+import { api } from "@/lib/api";
+import { transformBed, transformBooking, transformService, transformTherapist } from "@/lib/transform";
 
 const statusConfig = {
   available: { label: { th: "ว่าง", en: "Available" }, variant: "green" as const },
@@ -15,6 +17,25 @@ const statusConfig = {
 
 export default async function StaffDashboardPage() {
   const t = await getTranslations();
+
+  let beds: Bed[], bookings: Booking[], services: Service[], therapists: Therapist[];
+  try {
+    const [rawBeds, rawBookings, rawServices, rawTherapists] = await Promise.all([
+      api.getBeds(),
+      api.getBookings(),
+      api.getServices(),
+      api.getTherapists(),
+    ]);
+    beds = rawBeds.map(transformBed);
+    bookings = rawBookings.map(transformBooking);
+    services = rawServices.map(transformService);
+    therapists = rawTherapists.map(transformTherapist);
+  } catch {
+    beds = mockBeds;
+    bookings = mockBookings;
+    services = mockServices;
+    therapists = mockTherapists;
+  }
 
   return (
     <div>

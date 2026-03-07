@@ -4,20 +4,29 @@ import { useTranslations } from "next-intl";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { bookings } from "@/data/bookings";
-import { services } from "@/data/services";
-import { therapists } from "@/data/therapists";
-import { beds } from "@/data/beds";
+import { bookings as mockBookings } from "@/data/bookings";
+import { services as mockServices, type Service } from "@/data/services";
+import { therapists as mockTherapists, type Therapist } from "@/data/therapists";
+import { beds as mockBeds, type Bed } from "@/data/beds";
+import type { Booking } from "@/data/bookings";
+import { api } from "@/lib/api";
+import { transformBooking, transformService, transformTherapist, transformBed } from "@/lib/transform";
 import { useState, useEffect } from "react";
 
 function SessionCard({
   booking,
   now,
   t,
+  services,
+  therapists,
+  beds,
 }: {
-  booking: (typeof bookings)[0];
+  booking: Booking;
   now: Date;
   t: (key: string) => string;
+  services: Service[];
+  therapists: Therapist[];
+  beds: Bed[];
 }) {
   const service = services.find((s) => s.id === booking.serviceId);
   const therapist = therapists.find((th) => th.id === booking.therapistId);
@@ -98,12 +107,23 @@ function SessionCard({
 export default function StaffSessionPage() {
   const t = useTranslations();
   const [now, setNow] = useState(new Date());
+  const [bookings, setBookings] = useState(mockBookings);
+  const [services, setServices] = useState<Service[]>(mockServices);
+  const [therapists, setTherapists] = useState<Therapist[]>(mockTherapists);
+  const [beds, setBeds] = useState<Bed[]>(mockBeds);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setNow(new Date());
     }, 1000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    api.getBookings("in_service").then((raw) => setBookings(raw.map(transformBooking))).catch(() => {});
+    api.getServices().then((raw) => setServices(raw.map(transformService))).catch(() => {});
+    api.getTherapists().then((raw) => setTherapists(raw.map(transformTherapist))).catch(() => {});
+    api.getBeds().then((raw) => setBeds(raw.map(transformBed))).catch(() => {});
   }, []);
 
   const activeSessions = bookings.filter((b) => b.status === "in_service");
@@ -122,7 +142,7 @@ export default function StaffSessionPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {activeSessions.map((booking) => (
-            <SessionCard key={booking.id} booking={booking} now={now} t={t} />
+            <SessionCard key={booking.id} booking={booking} now={now} t={t} services={services} therapists={therapists} beds={beds} />
           ))}
         </div>
       )}

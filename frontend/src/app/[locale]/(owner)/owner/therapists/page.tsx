@@ -1,7 +1,9 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { therapists } from "@/data/therapists";
+import { therapists as mockTherapists, type Therapist } from "@/data/therapists";
+import { api } from "@/lib/api";
+import { transformTherapist } from "@/lib/transform";
 
 const performanceData: Record<number, { sessions: number; revenue: number }> = {
   1: { sessions: 4, revenue: 2400 },
@@ -13,6 +15,14 @@ const performanceData: Record<number, { sessions: number; revenue: number }> = {
 export default async function TherapistPerformancePage() {
   const t = await getTranslations();
   const locale = await getLocale();
+
+  let therapists: Therapist[];
+  try {
+    const raw = await api.getTherapists();
+    therapists = raw.map(transformTherapist);
+  } catch {
+    therapists = mockTherapists;
+  }
 
   return (
     <div>

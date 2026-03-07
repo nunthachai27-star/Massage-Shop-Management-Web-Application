@@ -3,7 +3,9 @@ import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { therapists } from "@/data/therapists";
+import { therapists as mockTherapists, type Therapist } from "@/data/therapists";
+import { api } from "@/lib/api";
+import { transformTherapist } from "@/lib/transform";
 
 export default async function TherapistsPage({
   searchParams,
@@ -13,6 +15,14 @@ export default async function TherapistsPage({
   const t = await getTranslations();
   const locale = (await getLocale()) as "th" | "en";
   const { serviceId } = await searchParams;
+
+  let therapists: Therapist[];
+  try {
+    const raw = await api.getTherapists();
+    therapists = raw.map(transformTherapist);
+  } catch {
+    therapists = mockTherapists;
+  }
 
   return (
     <section className="py-12 px-4 max-w-5xl mx-auto">

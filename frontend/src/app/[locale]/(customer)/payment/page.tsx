@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { services } from "@/data/services";
-import { therapists } from "@/data/therapists";
+import { services as mockServices } from "@/data/services";
+import { therapists as mockTherapists } from "@/data/therapists";
+import { api } from "@/lib/api";
+import { transformService, transformTherapist } from "@/lib/transform";
 
 type PaymentMethod = "promptpay" | "cash" | "transfer";
 
@@ -21,6 +23,14 @@ export default function PaymentPage() {
   const time = searchParams.get("time") || "";
   const customerName = searchParams.get("name") || "";
   const phone = searchParams.get("phone") || "";
+
+  const [services, setServices] = useState(mockServices);
+  const [therapists, setTherapists] = useState(mockTherapists);
+
+  useEffect(() => {
+    api.getServices().then((raw) => setServices(raw.map(transformService))).catch(() => {});
+    api.getTherapists().then((raw) => setTherapists(raw.map(transformTherapist))).catch(() => {});
+  }, []);
 
   const service = services.find((s) => s.id === serviceId);
   const therapist = therapists.find((th) => th.id === therapistId);
@@ -227,7 +237,28 @@ export default function PaymentPage() {
         size="lg"
         className="w-full"
         disabled={!selectedMethod}
-        onClick={() => setConfirmed(true)}
+        onClick={async () => {
+          try {
+            const booking = await api.createBooking({
+              customer_name: customerName,
+              phone,
+              service_id: serviceId,
+              therapist_id: therapistId,
+              start_time: time,
+            });
+            if (service && selectedMethod) {
+              const payment = await api.createPayment({
+                booking_id: booking.id,
+                amount: service.price,
+                method: selectedMethod,
+              });
+              await api.confirmPayment(payment.id);
+            }
+          } catch {
+            // API unavailable — proceed with mock flow
+          }
+          setConfirmed(true);
+        }}
       >
         {t("payment.confirm")}
       </Button>

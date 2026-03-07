@@ -2,10 +2,12 @@ import { getTranslations } from "next-intl/server";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { bookings } from "@/data/bookings";
-import { services } from "@/data/services";
-import { therapists } from "@/data/therapists";
-import { beds } from "@/data/beds";
+import { bookings as mockBookings, type Booking } from "@/data/bookings";
+import { services as mockServices, type Service } from "@/data/services";
+import { therapists as mockTherapists, type Therapist } from "@/data/therapists";
+import { beds as mockBeds, type Bed } from "@/data/beds";
+import { api } from "@/lib/api";
+import { transformBooking, transformService, transformTherapist, transformBed } from "@/lib/transform";
 
 const statusConfig = {
   booked: { label: { th: "จองแล้ว", en: "Booked" }, variant: "blue" as const },
@@ -32,6 +34,25 @@ function getActionButton(status: string, t: (key: string) => string) {
 
 export default async function StaffBookingsPage() {
   const t = await getTranslations();
+
+  let bookings: Booking[], services: Service[], therapists: Therapist[], beds: Bed[];
+  try {
+    const [rawBookings, rawServices, rawTherapists, rawBeds] = await Promise.all([
+      api.getBookings(),
+      api.getServices(),
+      api.getTherapists(),
+      api.getBeds(),
+    ]);
+    bookings = rawBookings.map(transformBooking);
+    services = rawServices.map(transformService);
+    therapists = rawTherapists.map(transformTherapist);
+    beds = rawBeds.map(transformBed);
+  } catch {
+    bookings = mockBookings;
+    services = mockServices;
+    therapists = mockTherapists;
+    beds = mockBeds;
+  }
 
   return (
     <div>

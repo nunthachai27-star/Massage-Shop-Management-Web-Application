@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { Link, useRouter } from "@/i18n/routing";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { services } from "@/data/services";
-import { therapists } from "@/data/therapists";
+import { services as mockServices } from "@/data/services";
+import { therapists as mockTherapists } from "@/data/therapists";
+import { api } from "@/lib/api";
+import { transformService, transformTherapist } from "@/lib/transform";
 
-const timeSlots = [
+const defaultTimeSlots = [
   { time: "09:00", available: true },
   { time: "10:00", available: false },
   { time: "11:00", available: true },
@@ -28,6 +30,24 @@ export default function BookingPage() {
 
   const serviceId = Number(searchParams.get("serviceId"));
   const therapistId = Number(searchParams.get("therapistId"));
+
+  const [services, setServices] = useState(mockServices);
+  const [therapists, setTherapists] = useState(mockTherapists);
+  const [timeSlots, setTimeSlots] = useState(defaultTimeSlots);
+
+  useEffect(() => {
+    api.getServices().then((raw) => setServices(raw.map(transformService))).catch(() => {});
+    api.getTherapists().then((raw) => setTherapists(raw.map(transformTherapist))).catch(() => {});
+    if (therapistId) {
+      const today = new Date().toISOString().split("T")[0];
+      api.getAvailableSlots(therapistId, today).then((slots) => {
+        if (Array.isArray(slots) && slots.length > 0) {
+          setTimeSlots(slots.map((s: any) => ({ time: s.time || s, available: s.available !== false })));
+        }
+      }).catch(() => {});
+    }
+  }, [therapistId]);
+
   const service = services.find((s) => s.id === serviceId);
   const therapist = therapists.find((th) => th.id === therapistId);
 
