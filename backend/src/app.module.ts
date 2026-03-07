@@ -5,6 +5,10 @@ import { ServicesModule } from "./services/services.module";
 import { TherapistsModule } from "./therapists/therapists.module";
 import { BedsModule } from "./beds/beds.module";
 import { CustomersModule } from "./customers/customers.module";
+import { BookingsModule } from "./bookings/bookings.module";
+import { PaymentsModule } from "./payments/payments.module";
+import { AttendanceModule } from "./attendance/attendance.module";
+import { DashboardModule } from "./dashboard/dashboard.module";
 
 @Module({
   imports: [
@@ -14,6 +18,10 @@ import { CustomersModule } from "./customers/customers.module";
     TherapistsModule,
     BedsModule,
     CustomersModule,
+    BookingsModule,
+    PaymentsModule,
+    AttendanceModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}
