@@ -1,0 +1,395 @@
+Top Level Specification (TLS)
+Massage Shop Management Web Application
+
+Version: 1.0
+Architecture: Web Application (Mobile First)
+Target: Claude Code AI Development
+
+1. System Overview
+
+ระบบนี้เป็น Web Application สำหรับบริหารร้านนวดเพื่อสุขภาพ รองรับ
+
+การจองคิวลูกค้า
+
+การเลือกบริการ
+
+การเลือกหมอนวด
+
+ระบบชำระเงิน
+
+การจัดการเตียงนวด
+
+ระบบลงเวลาเข้างานพนักงาน
+
+Dashboard สำหรับเจ้าของร้าน
+
+รองรับการใช้งานผ่าน
+
+Mobile Browser
+
+Tablet
+
+Desktop
+
+2. System Users
+2.1 Customer
+
+สามารถ
+
+จองบริการ
+
+เลือกหมอนวด
+
+เลือกเวลา
+
+ชำระเงิน
+
+2.2 Staff
+
+สามารถ
+
+Check-in ลูกค้า
+
+เริ่มบริการ
+
+จบการนวด
+
+Check-out
+
+2.3 Therapist
+
+สามารถ
+
+Check-in เข้างาน
+
+Check-out เลิกงาน
+
+ดูคิวของตนเอง
+
+2.4 Owner
+
+สามารถ
+
+ดู Dashboard
+
+ดูรายได้
+
+ดูสถิติพนักงาน
+
+3. Core Business Flow
+Customer Booking
+    ↓
+Select Service
+    ↓
+Select Therapist
+    ↓
+Select Time
+    ↓
+Payment
+    ↓
+Booking Confirmed
+    ↓
+Customer Check-in
+    ↓
+Massage Session
+    ↓
+Service Completed
+    ↓
+Checkout
+4. Functional Modules
+4.1 Booking Module
+Features
+
+Create Booking
+
+Select Service
+
+Select Therapist
+
+Select Time
+
+Check Availability
+
+Booking Logic
+
+System must validate
+
+therapist_available
+AND
+bed_available
+
+If unavailable
+
+suggest_next_available_slot
+4.2 Service Management
+
+Admin can manage
+
+Service Name
+
+Duration
+
+Price
+
+Example
+
+Service	Duration	Price
+Thai Massage	60 min	400
+Oil Massage	60 min	600
+Oil Massage	120 min	1000
+4.3 Therapist Management
+
+Store therapist information
+
+Fields
+
+therapist_id
+name
+skill
+rating
+status
+
+Status
+
+available
+busy
+break
+offline
+4.4 Bed Management
+
+System must manage
+
+4 massage beds
+
+Bed Status
+
+available
+reserved
+in_service
+cleaning
+4.5 Payment Module
+
+Supported payment methods
+
+promptpay_qr
+cash
+bank_transfer
+
+Payment Flow
+
+create_payment
+generate_qr
+payment_confirm
+update_booking_status
+4.6 Attendance Module
+
+Therapists must check-in before accepting bookings.
+
+Flow
+
+Therapist Login
+    ↓
+Check-in
+    ↓
+Status = Available
+
+Check-out
+
+Check-out
+Status = Offline
+4.7 Session Management
+
+Session lifecycle
+
+Booked
+↓
+Checked-in
+↓
+In Service
+↓
+Completed
+↓
+Checkout
+4.8 Dashboard Module
+
+Owner Dashboard must display
+
+Daily Metrics
+
+total_customers
+daily_revenue
+bed_utilization
+
+Therapist Metrics
+
+sessions_per_therapist
+revenue_per_therapist
+5. System Architecture
+
+Recommended architecture
+
+Mobile / Tablet Browser
+        │
+        │
+     Web Frontend
+        │
+        │
+     Backend API
+        │
+        │
+      Database
+6. Recommended Technology Stack
+
+Frontend
+
+Next.js
+React
+Tailwind CSS
+
+Backend
+
+Node.js
+NestJS
+
+Database
+
+PostgreSQL
+
+Hosting
+
+Vercel
+Supabase
+7. Database Schema
+Table: services
+service_id (PK)
+name
+duration
+price
+created_at
+Table: therapists
+therapist_id (PK)
+name
+skill
+rating
+status
+created_at
+Table: beds
+bed_id (PK)
+status
+Table: customers
+customer_id (PK)
+name
+phone
+line_id
+visit_count
+Table: bookings
+booking_id (PK)
+customer_id
+service_id
+therapist_id
+bed_id
+start_time
+end_time
+status
+created_at
+Table: payments
+payment_id (PK)
+booking_id
+amount
+method
+status
+paid_at
+Table: attendance
+attendance_id (PK)
+therapist_id
+check_in
+check_out
+date
+8. API Design
+Create Booking
+POST /api/bookings
+
+Payload
+
+{
+  customer_name,
+  phone,
+  service_id,
+  therapist_id,
+  start_time
+}
+Get Available Slots
+GET /api/availability
+
+Response
+
+{
+  therapist_id,
+  available_slots[]
+}
+Start Session
+POST /api/session/start
+Finish Session
+POST /api/session/finish
+9. UI Pages
+
+Customer
+
+Home
+Service Selection
+Therapist Selection
+Time Selection
+Payment
+
+Staff
+
+Bed Dashboard
+Booking List
+Session Control
+
+Owner
+
+Revenue Dashboard
+Therapist Performance
+10. Security
+
+Required security features
+
+HTTPS
+JWT Authentication
+Role Based Access
+Input Validation
+Rate Limiting
+11. Performance Requirements
+
+System must support
+
+50 concurrent users
+300 bookings per day
+12. Future Enhancements
+
+Optional features
+
+AI Therapist Recommendation
+Automatic Bed Allocation
+Customer Loyalty System
+Promotion Engine
+13. Deployment
+
+Deployment Flow
+
+Git Repository
+↓
+Claude Code AI Development
+↓
+CI/CD
+↓
+Deploy to Vercel
+↓
+Database on Supabase
+14. Expected System Capacity
+
+System designed for
+
+1 - 20 massage beds
+10 - 50 therapists
