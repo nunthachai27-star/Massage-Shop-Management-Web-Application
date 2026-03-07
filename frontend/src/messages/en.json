@@ -1,0 +1,87 @@
+{
+  "common": {
+    "appName": "Massage & Spa",
+    "book": "Book Now",
+    "services": "Services",
+    "therapists": "Therapists",
+    "payment": "Payment",
+    "login": "Login",
+    "logout": "Logout",
+    "dashboard": "Dashboard",
+    "language": "Language",
+    "back": "Back",
+    "next": "Next",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "loading": "Loading..."
+  },
+  "home": {
+    "hero": "Relax Your Body & Mind",
+    "subtitle": "Premium Health Massage Services",
+    "cta": "Book Now"
+  },
+  "services": {
+    "title": "Our Services",
+    "duration": "Duration",
+    "minutes": "min",
+    "price": "Price",
+    "baht": "THB",
+    "select": "Select This Service"
+  },
+  "therapists": {
+    "title": "Choose Your Therapist",
+    "rating": "Rating",
+    "available": "Available",
+    "busy": "Busy",
+    "select": "Select This Therapist"
+  },
+  "booking": {
+    "title": "Book Appointment",
+    "selectTime": "Select Time",
+    "customerName": "Name",
+    "phone": "Phone",
+    "summary": "Booking Summary",
+    "confirmed": "Booking Confirmed!"
+  },
+  "payment": {
+    "title": "Payment",
+    "method": "Payment Method",
+    "promptpay": "PromptPay QR",
+    "cash": "Cash",
+    "transfer": "Bank Transfer",
+    "total": "Total",
+    "confirm": "Confirm Payment"
+  },
+  "staff": {
+    "dashboard": "Staff Dashboard",
+    "beds": "Bed Status",
+    "bookings": "Bookings",
+    "session": "Session Control",
+    "checkin": "Check-in Customer",
+    "checkout": "Checkout",
+    "startService": "Start Service",
+    "endService": "End Service"
+  },
+  "owner": {
+    "dashboard": "Owner Dashboard",
+    "revenue": "Revenue",
+    "dailyRevenue": "Today's Revenue",
+    "totalCustomers": "Today's Customers",
+    "bedUtilization": "Bed Utilization",
+    "therapistPerformance": "Therapist Performance",
+    "sessions": "Sessions",
+    "revenuePerTherapist": "Revenue per Therapist"
+  },
+  "auth": {
+    "staffLogin": "Staff Login",
+    "ownerLogin": "Owner Login",
+    "enterPin": "Enter PIN",
+    "username": "Username",
+    "password": "Password"
+  },
+  "attendance": {
+    "checkin": "Check In",
+    "checkout": "Check Out",
+    "status": "Status"
+  }
+}

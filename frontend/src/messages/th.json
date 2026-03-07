@@ -1,0 +1,87 @@
+{
+  "common": {
+    "appName": "Massage & Spa",
+    "book": "จองบริการ",
+    "services": "บริการ",
+    "therapists": "หมอนวด",
+    "payment": "ชำระเงิน",
+    "login": "เข้าสู่ระบบ",
+    "logout": "ออกจากระบบ",
+    "dashboard": "แดชบอร์ด",
+    "language": "ภาษา",
+    "back": "ย้อนกลับ",
+    "next": "ถัดไป",
+    "confirm": "ยืนยัน",
+    "cancel": "ยกเลิก",
+    "loading": "กำลังโหลด..."
+  },
+  "home": {
+    "hero": "ผ่อนคลายร่างกายและจิตใจ",
+    "subtitle": "บริการนวดเพื่อสุขภาพระดับพรีเมียม",
+    "cta": "จองคิวตอนนี้"
+  },
+  "services": {
+    "title": "บริการของเรา",
+    "duration": "ระยะเวลา",
+    "minutes": "นาที",
+    "price": "ราคา",
+    "baht": "บาท",
+    "select": "เลือกบริการนี้"
+  },
+  "therapists": {
+    "title": "เลือกหมอนวด",
+    "rating": "คะแนน",
+    "available": "ว่าง",
+    "busy": "กำลังให้บริการ",
+    "select": "เลือกหมอนวดท่านนี้"
+  },
+  "booking": {
+    "title": "จองคิว",
+    "selectTime": "เลือกเวลา",
+    "customerName": "ชื่อ",
+    "phone": "เบอร์โทร",
+    "summary": "สรุปการจอง",
+    "confirmed": "จองสำเร็จ!"
+  },
+  "payment": {
+    "title": "ชำระเงิน",
+    "method": "วิธีชำระเงิน",
+    "promptpay": "พร้อมเพย์ QR",
+    "cash": "เงินสด",
+    "transfer": "โอนเงิน",
+    "total": "ยอดรวม",
+    "confirm": "ยืนยันการชำระ"
+  },
+  "staff": {
+    "dashboard": "แดชบอร์ดพนักงาน",
+    "beds": "สถานะเตียง",
+    "bookings": "รายการจอง",
+    "session": "ควบคุม Session",
+    "checkin": "เช็คอินลูกค้า",
+    "checkout": "เช็คเอาท์",
+    "startService": "เริ่มบริการ",
+    "endService": "จบบริการ"
+  },
+  "owner": {
+    "dashboard": "แดชบอร์ดเจ้าของร้าน",
+    "revenue": "รายได้",
+    "dailyRevenue": "รายได้วันนี้",
+    "totalCustomers": "ลูกค้าวันนี้",
+    "bedUtilization": "อัตราใช้เตียง",
+    "therapistPerformance": "ผลงานหมอนวด",
+    "sessions": "จำนวนรอบ",
+    "revenuePerTherapist": "รายได้ต่อคน"
+  },
+  "auth": {
+    "staffLogin": "เข้าสู่ระบบพนักงาน",
+    "ownerLogin": "เข้าสู่ระบบเจ้าของร้าน",
+    "enterPin": "กรอก PIN",
+    "username": "ชื่อผู้ใช้",
+    "password": "รหัสผ่าน"
+  },
+  "attendance": {
+    "checkin": "ลงเวลาเข้างาน",
+    "checkout": "ลงเวลาเลิกงาน",
+    "status": "สถานะ"
+  }
+}
