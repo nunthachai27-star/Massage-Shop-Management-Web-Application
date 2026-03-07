@@ -1,5 +1,7 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
+type ApiRecord = Record<string, unknown>;
+
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: {
@@ -17,66 +19,76 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
 
 export const api = {
   // Services
-  getServices: () => apiFetch<any[]>("/services"),
-  getService: (id: number) => apiFetch<any>(`/services/${id}`),
+  getServices: () => apiFetch<ApiRecord[]>("/services"),
+  getService: (id: number) => apiFetch<ApiRecord>(`/services/${id}`),
 
   // Therapists
   getTherapists: (status?: string) =>
-    apiFetch<any[]>(`/therapists${status ? `?status=${status}` : ""}`),
+    apiFetch<ApiRecord[]>(`/therapists${status ? `?status=${status}` : ""}`),
 
   // Bookings
   getAvailableSlots: (therapistId: number, date: string, duration?: number) =>
-    apiFetch<any[]>(
+    apiFetch<ApiRecord[]>(
       `/bookings/availability?therapistId=${therapistId}&date=${date}${duration ? `&duration=${duration}` : ""}`
     ),
-  createBooking: (data: any) =>
-    apiFetch<any>("/bookings", { method: "POST", body: JSON.stringify(data) }),
+  createBooking: (data: Record<string, unknown>) =>
+    apiFetch<ApiRecord>("/bookings", { method: "POST", body: JSON.stringify(data) }),
   getBookings: (status?: string, date?: string) => {
     const params = new URLSearchParams();
     if (status) params.set("status", status);
     if (date) params.set("date", date);
     const qs = params.toString();
-    return apiFetch<any[]>(`/bookings${qs ? `?${qs}` : ""}`);
+    return apiFetch<ApiRecord[]>(`/bookings${qs ? `?${qs}` : ""}`);
   },
-  updateBookingStatus: (id: number, status: string) =>
-    apiFetch<any>(`/bookings/${id}/status`, {
+  updateBookingStatus: (id: number, status: string, bedId?: number) =>
+    apiFetch<ApiRecord>(`/bookings/${id}/status`, {
       method: "PATCH",
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, ...(bedId ? { bed_id: bedId } : {}) }),
     }),
 
   // Payments
-  createPayment: (data: any) =>
-    apiFetch<any>("/payments", { method: "POST", body: JSON.stringify(data) }),
+  createPayment: (data: Record<string, unknown>) =>
+    apiFetch<ApiRecord>("/payments", { method: "POST", body: JSON.stringify(data) }),
   confirmPayment: (id: number) =>
-    apiFetch<any>(`/payments/${id}/confirm`, { method: "PATCH" }),
+    apiFetch<ApiRecord>(`/payments/${id}/confirm`, { method: "PATCH" }),
 
   // Beds
-  getBeds: () => apiFetch<any[]>("/beds"),
+  getBeds: () => apiFetch<ApiRecord[]>("/beds"),
 
   // Attendance
-  getTodayAttendance: () => apiFetch<any[]>("/attendance/today"),
+  getTodayAttendance: () => apiFetch<ApiRecord[]>("/attendance/today"),
   checkIn: (therapistId: number) =>
-    apiFetch<any>("/attendance/check-in", {
+    apiFetch<ApiRecord>("/attendance/check-in", {
       method: "POST",
       body: JSON.stringify({ therapist_id: therapistId }),
     }),
   checkOut: (id: number) =>
-    apiFetch<any>(`/attendance/${id}/check-out`, { method: "PATCH" }),
+    apiFetch<ApiRecord>(`/attendance/${id}/check-out`, { method: "PATCH" }),
 
   // Dashboard
   getDailyMetrics: (date?: string) =>
-    apiFetch<any>(`/dashboard/daily${date ? `?date=${date}` : ""}`),
+    apiFetch<ApiRecord>(`/dashboard/daily${date ? `?date=${date}` : ""}`),
   getTherapistPerformance: (date?: string) =>
-    apiFetch<any[]>(`/dashboard/therapists${date ? `?date=${date}` : ""}`),
+    apiFetch<ApiRecord[]>(`/dashboard/therapists${date ? `?date=${date}` : ""}`),
+
+  // Customers
+  getCustomers: (search?: string) => {
+    const qs = search ? `?search=${encodeURIComponent(search)}` : "";
+    return apiFetch<ApiRecord[]>(`/customers${qs}`);
+  },
+  createCustomer: (data: { name: string; phone?: string }) =>
+    apiFetch<ApiRecord>("/customers", { method: "POST", body: JSON.stringify(data) }),
+  incrementVisit: (customerId: number) =>
+    apiFetch<ApiRecord>(`/customers/${customerId}/visit`, { method: "PATCH" }),
 
   // Auth
   pinLogin: (pin: string) =>
-    apiFetch<any>("/auth/pin-login", {
+    apiFetch<ApiRecord>("/auth/pin-login", {
       method: "POST",
       body: JSON.stringify({ pin }),
     }),
   ownerLogin: (username: string, password: string) =>
-    apiFetch<any>("/auth/owner-login", {
+    apiFetch<ApiRecord>("/auth/owner-login", {
       method: "POST",
       body: JSON.stringify({ username, password }),
     }),

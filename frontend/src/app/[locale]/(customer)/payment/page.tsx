@@ -217,7 +217,7 @@ export default function PaymentPage() {
                 <span className="text-white/60">
                   {locale === "th" ? "ชื่อบัญชี" : "Account Name"}
                 </span>
-                <span className="text-white">Massage & Spa Co., Ltd.</span>
+                <span className="text-white">ชาลิตา นวดเพื่อสุขภาพ</span>
               </div>
               <div className="border-t border-white/10 pt-3 flex justify-between">
                 <span className="text-white/60">
@@ -252,7 +252,7 @@ export default function PaymentPage() {
                 amount: service.price,
                 method: selectedMethod,
               });
-              await api.confirmPayment(payment.id);
+              await api.confirmPayment(payment.id as number);
             }
           } catch {
             // API unavailable — proceed with mock flow

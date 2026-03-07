@@ -51,6 +51,6 @@ export class BookingsController {
     @Param("id", ParseIntPipe) id: number,
     @Body() dto: UpdateBookingStatusDto,
   ) {
-    return this.bookingsService.updateStatus(id, dto.status);
+    return this.bookingsService.updateStatus(id, dto.status, dto.bed_id);
   }
 }

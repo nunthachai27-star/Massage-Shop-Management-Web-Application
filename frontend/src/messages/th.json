@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Massage & Spa",
+    "appName": "ชาลิตา นวดเพื่อสุขภาพ",
     "book": "จองบริการ",
     "services": "บริการ",
     "therapists": "หมอนวด",
@@ -54,20 +54,21 @@
   },
   "staff": {
     "dashboard": "แดชบอร์ดพนักงาน",
-    "beds": "สถานะเตียง",
+    "beds": "สถานะห้อง",
     "bookings": "รายการจอง",
     "session": "ควบคุม Session",
     "checkin": "เช็คอินลูกค้า",
     "checkout": "เช็คเอาท์",
     "startService": "เริ่มบริการ",
-    "endService": "จบบริการ"
+    "endService": "จบบริการ",
+    "customers": "ลูกค้าสะสมแต้ม"
   },
   "owner": {
     "dashboard": "แดชบอร์ดเจ้าของร้าน",
     "revenue": "รายได้",
     "dailyRevenue": "รายได้วันนี้",
     "totalCustomers": "ลูกค้าวันนี้",
-    "bedUtilization": "อัตราใช้เตียง",
+    "bedUtilization": "อัตราใช้ห้อง",
     "therapistPerformance": "ผลงานหมอนวด",
     "sessions": "จำนวนรอบ",
     "revenuePerTherapist": "รายได้ต่อคน"

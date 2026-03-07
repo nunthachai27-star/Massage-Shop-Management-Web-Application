@@ -14,21 +14,29 @@ export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<"staff" | "owner">("staff");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-
   const handlePinComplete = async (pin: string) => {
-    setError("");
     try {
-      await api.pinLogin(pin);
+      const result = await api.pinLogin(pin);
+      if (result?.therapist) {
+        localStorage.setItem("loggedInTherapist", JSON.stringify(result.therapist));
+      }
     } catch {
-      // API unavailable — proceed with mock flow
+      // API unavailable — match PIN to mock therapist
+      const mockPins: Record<string, number> = { "1234": 1, "5678": 2, "9012": 3, "3456": 4, "1111": 5, "2222": 6, "3333": 7 };
+      const therapistId = mockPins[pin];
+      if (therapistId) {
+        const { therapists } = await import("@/data/therapists");
+        const therapist = therapists.find((t) => t.id === therapistId);
+        if (therapist) {
+          localStorage.setItem("loggedInTherapist", JSON.stringify(therapist));
+        }
+      }
     }
     router.push("/staff/dashboard");
   };
 
   const handleOwnerLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     try {
       await api.ownerLogin(username, password);
     } catch {

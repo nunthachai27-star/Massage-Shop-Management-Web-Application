@@ -5,9 +5,10 @@ import { Link, usePathname } from "@/i18n/routing";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
 const navItems = [
-  { href: "/staff/dashboard", labelKey: "staff.beds", icon: "🛏️" },
+  { href: "/staff/dashboard", labelKey: "staff.beds", icon: "🚪" },
   { href: "/staff/bookings", labelKey: "staff.bookings", icon: "📋" },
   { href: "/staff/session", labelKey: "staff.session", icon: "⏱️" },
+  { href: "/staff/customers", labelKey: "staff.customers", icon: "⭐" },
   { href: "/staff/attendance", labelKey: "attendance.checkin", icon: "📍" },
 ];
 

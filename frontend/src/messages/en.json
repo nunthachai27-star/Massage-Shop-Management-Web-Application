@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Massage & Spa",
+    "appName": "ชาลิตา นวดเพื่อสุขภาพ",
     "book": "Book Now",
     "services": "Services",
     "therapists": "Therapists",
@@ -54,20 +54,21 @@
   },
   "staff": {
     "dashboard": "Staff Dashboard",
-    "beds": "Bed Status",
+    "beds": "Room Status",
     "bookings": "Bookings",
     "session": "Session Control",
     "checkin": "Check-in Customer",
     "checkout": "Checkout",
     "startService": "Start Service",
-    "endService": "End Service"
+    "endService": "End Service",
+    "customers": "Customer Loyalty"
   },
   "owner": {
     "dashboard": "Owner Dashboard",
     "revenue": "Revenue",
     "dailyRevenue": "Today's Revenue",
     "totalCustomers": "Today's Customers",
-    "bedUtilization": "Bed Utilization",
+    "bedUtilization": "Room Utilization",
     "therapistPerformance": "Therapist Performance",
     "sessions": "Sessions",
     "revenuePerTherapist": "Revenue per Therapist"

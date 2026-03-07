@@ -10,7 +10,7 @@ export interface Service {
 export const services: Service[] = [
   {
     id: 1,
-    name: { th: "นวดแผนไทย", en: "Thai Massage" },
+    name: { th: "นวดไทย", en: "Thai Massage" },
     duration: 60,
     price: 400,
     description: {
@@ -21,46 +21,35 @@ export const services: Service[] = [
   },
   {
     id: 2,
-    name: { th: "นวดน้ำมัน", en: "Oil Massage" },
+    name: { th: "นวดน้ำมัน (อโรม่า) 1 ชม.", en: "Aroma Oil Massage 1 hr" },
     duration: 60,
     price: 600,
     description: {
-      th: "นวดน้ำมันอโรมา ผ่อนคลายลึก",
-      en: "Aromatherapy oil massage for deep relaxation",
+      th: "นวดน้ำมันอโรม่า ผ่อนคลายลึก ในห้องส่วนตัวพร้อมห้องน้ำในตัว",
+      en: "Aromatherapy oil massage in private room with en-suite bathroom",
     },
     image: "/images/oil-massage.jpg",
   },
   {
     id: 3,
-    name: { th: "นวดน้ำมัน", en: "Oil Massage" },
-    duration: 120,
-    price: 1000,
+    name: { th: "นวดน้ำมัน (อโรม่า) 1.5 ชม.", en: "Aroma Oil Massage 1.5 hr" },
+    duration: 90,
+    price: 800,
     description: {
-      th: "นวดน้ำมันอโรมา 2 ชั่วโมง ผ่อนคลายอย่างเต็มที่",
-      en: "2-hour aromatherapy oil massage for ultimate relaxation",
+      th: "นวดน้ำมันอโรม่า 1 ชั่วโมงครึ่ง ผ่อนคลายอย่างเต็มที่",
+      en: "1.5-hour aromatherapy oil massage for deep relaxation",
     },
-    image: "/images/oil-massage-2h.jpg",
+    image: "/images/oil-massage.jpg",
   },
   {
     id: 4,
-    name: { th: "นวดเท้า", en: "Foot Massage" },
-    duration: 60,
-    price: 350,
+    name: { th: "นวดน้ำมัน (อโรม่า) 2 ชม.", en: "Aroma Oil Massage 2 hr" },
+    duration: 120,
+    price: 1000,
     description: {
-      th: "นวดเท้าและขา กดจุดสะท้อน",
-      en: "Foot and leg reflexology massage",
+      th: "นวดน้ำมันอโรม่า 2 ชั่วโมง ผ่อนคลายสุดพิเศษ",
+      en: "2-hour aromatherapy oil massage for ultimate relaxation",
     },
-    image: "/images/foot-massage.jpg",
-  },
-  {
-    id: 5,
-    name: { th: "นวดศีรษะ คอ บ่า ไหล่", en: "Head & Shoulder Massage" },
-    duration: 45,
-    price: 300,
-    description: {
-      th: "นวดศีรษะ คอ บ่า ไหล่ แก้ออฟฟิศซินโดรม",
-      en: "Head, neck & shoulder massage for office syndrome",
-    },
-    image: "/images/head-massage.jpg",
+    image: "/images/oil-massage.jpg",
   },
 ];

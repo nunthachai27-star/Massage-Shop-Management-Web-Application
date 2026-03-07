@@ -14,7 +14,7 @@ export class BookingsService {
     let query = this.supabase
       .getClient()
       .from("bookings")
-      .select("*, services(*), therapists(*), customers(*), beds(*)")
+      .select("*, services(*), therapists(*), customers(*), beds!bookings_bed_id_fkey(*)")
       .order("start_time", { ascending: true });
 
     if (status) query = query.eq("status", status);
@@ -33,7 +33,7 @@ export class BookingsService {
     const { data, error } = await this.supabase
       .getClient()
       .from("bookings")
-      .select("*, services(*), therapists(*), customers(*), beds(*)")
+      .select("*, services(*), therapists(*), customers(*), beds!bookings_bed_id_fkey(*)")
       .eq("id", id)
       .single();
     if (error || !data) throw new NotFoundException("Booking not found");
@@ -95,35 +95,25 @@ export class BookingsService {
       );
     }
 
-    // 4. Find available bed
-    const { data: availableBed } = await client
-      .from("beds")
-      .select("*")
-      .eq("status", "available")
-      .limit(1)
-      .single();
-
-    if (!availableBed) {
-      throw new BadRequestException("No beds available at this time");
-    }
-
-    // 5. Create booking
+    // 4. Create booking (bed assigned at check-in, not at booking time)
     const { data: booking, error } = await client
       .from("bookings")
       .insert({
         customer_id: customer.id,
+        customer_name: dto.customer_name,
+        phone: dto.phone,
         service_id: dto.service_id,
         therapist_id: dto.therapist_id,
-        bed_id: availableBed.id,
+        bed_id: null,
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
         status: "booked",
       })
-      .select("*, services(*), therapists(*), customers(*), beds(*)")
+      .select("*, services(*), therapists(*), customers(*), beds!bookings_bed_id_fkey(*)")
       .single();
     if (error) throw error;
 
-    // 6. Create payment (pending)
+    // 5. Create payment (pending)
     await client.from("payments").insert({
       booking_id: booking.id,
       amount: service.price,
@@ -131,67 +121,79 @@ export class BookingsService {
       status: "pending",
     });
 
-    // 7. Update bed
-    await client
-      .from("beds")
-      .update({ status: "reserved", current_booking_id: booking.id })
-      .eq("id", availableBed.id);
-
     return booking;
   }
 
-  async updateStatus(id: number, newStatus: string) {
+  async updateStatus(id: number, newStatus: string, bedId?: number) {
     const client = this.supabase.getClient();
 
     const { data: booking } = await client
       .from("bookings")
-      .select("*, beds(*)")
+      .select("*, beds!bookings_bed_id_fkey(*)")
       .eq("id", id)
       .single();
     if (!booking) throw new NotFoundException("Booking not found");
 
-    // Update booking status
+    // Build update payload
+    const updatePayload: Record<string, unknown> = { status: newStatus };
+
+    // Assign bed at check-in (when moving to in_service with a bed_id)
+    if (newStatus === "in_service" && bedId) {
+      updatePayload.bed_id = bedId;
+    }
+
+    // Update booking
     const { data: updated, error } = await client
       .from("bookings")
-      .update({ status: newStatus })
+      .update(updatePayload)
       .eq("id", id)
-      .select("*, services(*), therapists(*), customers(*), beds(*)")
+      .select("*, services(*), therapists(*), customers(*), beds!bookings_bed_id_fkey(*)")
       .single();
     if (error) throw error;
+
+    const effectiveBedId = bedId || booking.bed_id;
 
     // Side effects based on status change
     switch (newStatus) {
       case "in_service":
-        await client
-          .from("beds")
-          .update({ status: "in_service" })
-          .eq("id", booking.bed_id);
+        if (effectiveBedId) {
+          await client
+            .from("beds")
+            .update({ status: "in_service", current_booking_id: id })
+            .eq("id", effectiveBedId);
+        }
         await client
           .from("therapists")
           .update({ status: "busy" })
           .eq("id", booking.therapist_id);
         break;
       case "completed":
-        await client
-          .from("beds")
-          .update({ status: "cleaning" })
-          .eq("id", booking.bed_id);
+        if (effectiveBedId) {
+          await client
+            .from("beds")
+            .update({ status: "available", current_booking_id: null })
+            .eq("id", effectiveBedId);
+        }
         await client
           .from("therapists")
           .update({ status: "available" })
           .eq("id", booking.therapist_id);
         break;
       case "checkout":
-        await client
-          .from("beds")
-          .update({ status: "available", current_booking_id: null })
-          .eq("id", booking.bed_id);
+        if (effectiveBedId) {
+          await client
+            .from("beds")
+            .update({ status: "available", current_booking_id: null })
+            .eq("id", effectiveBedId);
+        }
         break;
       case "cancelled":
-        await client
-          .from("beds")
-          .update({ status: "available", current_booking_id: null })
-          .eq("id", booking.bed_id);
+        if (effectiveBedId) {
+          await client
+            .from("beds")
+            .update({ status: "available", current_booking_id: null })
+            .eq("id", effectiveBedId);
+        }
         if (booking.therapist_id) {
           await client
             .from("therapists")

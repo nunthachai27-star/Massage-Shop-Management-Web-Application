@@ -5,188 +5,258 @@ import { useTranslations, useLocale } from "next-intl";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { therapists as mockTherapists } from "@/data/therapists";
+import { therapists as mockTherapists, type Therapist } from "@/data/therapists";
 import { api } from "@/lib/api";
-import { transformTherapist } from "@/lib/transform";
 
 interface AttendanceRecord {
   id?: number;
-  therapistId: number;
-  status: "checked_in" | "checked_out" | "not_checked_in";
+  status: "not_checked_in" | "checked_in" | "checked_out";
   checkInTime?: string;
   checkOutTime?: string;
 }
 
-const initialAttendance: AttendanceRecord[] = [
-  { therapistId: 1, status: "checked_in", checkInTime: "08:30" },
-  { therapistId: 2, status: "checked_in", checkInTime: "08:45" },
-  { therapistId: 3, status: "not_checked_in" },
-  { therapistId: 4, status: "not_checked_in" },
-];
+function calcWorkHours(checkIn?: string, checkOut?: string): string {
+  if (!checkIn) return "0:00";
+  const now = new Date();
+  const [inH, inM] = checkIn.split(":").map(Number);
+  let endH: number, endM: number;
+  if (checkOut) {
+    [endH, endM] = checkOut.split(":").map(Number);
+  } else {
+    endH = now.getHours();
+    endM = now.getMinutes();
+  }
+  let diffMin = (endH * 60 + endM) - (inH * 60 + inM);
+  if (diffMin < 0) diffMin = 0;
+  const hours = Math.floor(diffMin / 60);
+  const mins = diffMin % 60;
+  return `${hours}:${mins.toString().padStart(2, "0")}`;
+}
 
 export default function AttendancePage() {
   const t = useTranslations();
   const locale = useLocale();
-  const [therapists, setTherapists] = useState(mockTherapists);
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>(initialAttendance);
+  const [therapist] = useState<Therapist | null>(() => {
+    if (typeof window === "undefined") return null;
+    const stored = localStorage.getItem("loggedInTherapist");
+    return stored ? JSON.parse(stored) : null;
+  });
+  const [record, setRecord] = useState<AttendanceRecord>({ status: "not_checked_in" });
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [allRecords, setAllRecords] = useState<Record<number, AttendanceRecord>>({});
 
   useEffect(() => {
-    api.getTherapists().then((raw) => setTherapists(raw.map(transformTherapist))).catch(() => {});
+    if (!therapist) return;
     api.getTodayAttendance().then((records) => {
-      if (Array.isArray(records) && records.length > 0) {
-        setAttendance(records.map((r: any) => ({
-          id: r.id,
-          therapistId: r.therapist_id || r.therapistId,
-          status: r.check_out_time ? "checked_out" : "checked_in",
-          checkInTime: r.check_in_time ? new Date(r.check_in_time).toLocaleTimeString("th", { hour: "2-digit", minute: "2-digit" }) : undefined,
-          checkOutTime: r.check_out_time ? new Date(r.check_out_time).toLocaleTimeString("th", { hour: "2-digit", minute: "2-digit" }) : undefined,
-        })));
+      if (Array.isArray(records)) {
+        const mapped: Record<number, AttendanceRecord> = {};
+        records.forEach((r: Record<string, unknown>) => {
+          const tid = (r.therapist_id || r.therapistId) as number;
+          mapped[tid] = {
+            id: r.id as number,
+            status: (r.check_out || r.check_out_time) ? "checked_out" : "checked_in",
+            checkInTime: (r.check_in || r.check_in_time) ? new Date(String(r.check_in || r.check_in_time)).toLocaleTimeString("th", { hour: "2-digit", minute: "2-digit" }) : undefined,
+            checkOutTime: (r.check_out || r.check_out_time) ? new Date(String(r.check_out || r.check_out_time)).toLocaleTimeString("th", { hour: "2-digit", minute: "2-digit" }) : undefined,
+          };
+        });
+        setAllRecords(mapped);
+        if (mapped[therapist.id]) {
+          setRecord(mapped[therapist.id]);
+        }
       }
-    }).catch(() => {});
+    }).catch(() => {
+      // Mock: some therapists already checked in
+      const mockAll: Record<number, AttendanceRecord> = {
+        2: { status: "checked_in", checkInTime: "08:45" },
+        3: { status: "checked_in", checkInTime: "09:00" },
+        5: { status: "checked_in", checkInTime: "08:30" },
+        6: { status: "checked_out", checkInTime: "08:00", checkOutTime: "17:00" },
+      };
+      setAllRecords(mockAll);
+      if (mockAll[therapist.id]) {
+        setRecord(mockAll[therapist.id]);
+      }
+    });
+  }, [therapist]);
+
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(interval);
   }, []);
 
-  const handleCheckIn = async (therapistId: number) => {
+  const handleCheckIn = async () => {
+    if (!therapist) return;
     const now = new Date();
     const timeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
     try {
-      const result = await api.checkIn(therapistId);
-      setAttendance((prev) => {
-        const exists = prev.find((r) => r.therapistId === therapistId);
-        if (exists) {
-          return prev.map((record) =>
-            record.therapistId === therapistId
-              ? { ...record, id: result.id, status: "checked_in" as const, checkInTime: timeStr }
-              : record
-          );
-        }
-        return [...prev, { id: result.id, therapistId, status: "checked_in" as const, checkInTime: timeStr }];
-      });
+      const result = await api.checkIn(therapist.id);
+      const newRec: AttendanceRecord = { id: result.id as number, status: "checked_in", checkInTime: timeStr };
+      setRecord(newRec);
+      setAllRecords((prev) => ({ ...prev, [therapist.id]: newRec }));
     } catch {
-      setAttendance((prev) =>
-        prev.map((record) =>
-          record.therapistId === therapistId
-            ? { ...record, status: "checked_in" as const, checkInTime: timeStr }
-            : record
-        )
-      );
+      const newRec: AttendanceRecord = { status: "checked_in", checkInTime: timeStr };
+      setRecord(newRec);
+      setAllRecords((prev) => ({ ...prev, [therapist.id]: newRec }));
     }
   };
 
-  const handleCheckOut = async (therapistId: number) => {
+  const handleCheckOut = async () => {
+    if (!therapist) return;
     const now = new Date();
     const timeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-    const record = attendance.find((a) => a.therapistId === therapistId);
     try {
-      if (record?.id) {
-        await api.checkOut(record.id);
-      }
+      if (record.id) await api.checkOut(record.id);
     } catch {
-      // fallback to local state
+      // fallback
     }
-    setAttendance((prev) =>
-      prev.map((r) =>
-        r.therapistId === therapistId
-          ? { ...r, status: "checked_out" as const, checkOutTime: timeStr }
-          : r
-      )
-    );
+    setRecord((prev) => {
+      const updated = { ...prev, status: "checked_out" as const, checkOutTime: timeStr };
+      setAllRecords((p) => ({ ...p, [therapist.id]: updated }));
+      return updated;
+    });
   };
+
+  if (!therapist) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card>
+          <p className="text-white/50 text-center py-8">
+            {locale === "th" ? "กรุณาเข้าสู่ระบบก่อน" : "Please login first"}
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
+  const workHours = calcWorkHours(record.checkInTime, record.checkOutTime);
+  const displayName = locale === "th" ? therapist.name.th : therapist.name.en;
 
   return (
     <div>
       <h1 className="font-heading text-2xl text-white mb-6">{t("attendance.checkin")}</h1>
 
-      <div className="space-y-3">
-        {therapists.map((therapist) => {
-          const record = attendance.find((a) => a.therapistId === therapist.id);
-          const status = record?.status || "not_checked_in";
+      {/* Profile Card */}
+      <Card className="mb-6">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent-gold to-accent-gold-dark flex items-center justify-center text-primary-dark font-bold text-2xl shrink-0">
+            {therapist.name.th.charAt(0)}
+          </div>
+          <div>
+            <h2 className="text-white text-xl font-medium">{displayName}</h2>
+            <div className="flex items-center gap-2 mt-1">
+              {record.status === "checked_in" ? (
+                <Badge variant="green">{t("attendance.checkin")}</Badge>
+              ) : record.status === "checked_out" ? (
+                <Badge variant="gray">{t("attendance.checkout")}</Badge>
+              ) : (
+                <Badge variant="red">{locale === "th" ? "ยังไม่ลงเวลา" : "Not checked in"}</Badge>
+              )}
+            </div>
+          </div>
+        </div>
+      </Card>
 
-          const statusBadge =
-            status === "checked_in" ? (
-              <Badge variant="green">{t("attendance.checkin")}</Badge>
-            ) : status === "checked_out" ? (
-              <Badge variant="gray">{t("attendance.checkout")}</Badge>
-            ) : (
-              <Badge variant="red">{t("attendance.status")}</Badge>
-            );
+      {/* Clock Display */}
+      <Card className="mb-6">
+        <div className="text-center py-4">
+          <p className="text-white/40 text-sm mb-2">{locale === "th" ? "เวลาปัจจุบัน" : "Current Time"}</p>
+          <p className="text-accent-gold text-5xl font-bold font-mono tracking-wider">
+            {currentTime.toLocaleTimeString("th", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+          </p>
+        </div>
+      </Card>
 
-          return (
-            <Card key={therapist.id}>
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-gold to-accent-gold-dark flex items-center justify-center text-primary-dark font-bold shrink-0">
-                    {therapist.name.en.charAt(0)}
+      {/* Action Button */}
+      <div className="mb-6">
+        {record.status === "not_checked_in" && (
+          <Button variant="primary" size="lg" className="w-full py-4 text-lg" onClick={handleCheckIn}>
+            {t("attendance.checkin")}
+          </Button>
+        )}
+        {record.status === "checked_in" && (
+          <Button variant="danger" size="lg" className="w-full py-4 text-lg" onClick={handleCheckOut}>
+            {t("attendance.checkout")}
+          </Button>
+        )}
+        {record.status === "checked_out" && (
+          <div className="text-center py-4">
+            <p className="text-white/40">{locale === "th" ? "ลงเวลาออกแล้ว" : "Already checked out"}</p>
+          </div>
+        )}
+      </div>
+
+      {/* My Time Summary */}
+      <Card className="mb-6">
+        <h2 className="font-heading text-lg text-white mb-4">
+          {locale === "th" ? "สรุปเวลาของฉัน" : "My Summary"}
+        </h2>
+        <div className="space-y-3">
+          <div className="flex justify-between items-center py-2 border-b border-white/10">
+            <span className="text-white/50">{locale === "th" ? "เวลาเข้างาน" : "Check In"}</span>
+            <span className="text-white font-medium text-lg">
+              {record.checkInTime ? `${record.checkInTime} น.` : "---"}
+            </span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-white/10">
+            <span className="text-white/50">{locale === "th" ? "เวลาออกงาน" : "Check Out"}</span>
+            <span className="text-white font-medium text-lg">
+              {record.checkOutTime ? `${record.checkOutTime} น.` : "---"}
+            </span>
+          </div>
+          <div className="flex justify-between items-center py-2">
+            <span className="text-white/50">{locale === "th" ? "ชั่วโมงทำงาน" : "Work Hours"}</span>
+            <span className="text-accent-gold font-bold text-2xl">
+              {record.checkInTime ? `${workHours} ${locale === "th" ? "ชม." : "hrs"}` : "---"}
+            </span>
+          </div>
+        </div>
+      </Card>
+
+      {/* All Staff Summary */}
+      <Card>
+        <h2 className="font-heading text-lg text-white mb-4">
+          {locale === "th" ? "สรุปเวลาทั้งร้าน" : "All Staff Attendance"}
+        </h2>
+        <div className="space-y-2">
+          {mockTherapists.map((th) => {
+            const rec = allRecords[th.id];
+            const name = locale === "th" ? th.name.th : th.name.en;
+            const isMe = therapist && th.id === therapist.id;
+            return (
+              <div
+                key={th.id}
+                className={`flex items-center justify-between py-3 px-3 rounded-lg ${isMe ? "bg-accent-gold/10 border border-accent-gold/20" : "border-b border-white/5"}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-gold to-accent-gold-dark flex items-center justify-center text-primary-dark font-bold text-xs shrink-0">
+                    {th.name.th.charAt(0)}
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-white font-medium truncate">
-                      {locale === "th" ? therapist.name.th : therapist.name.en}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {statusBadge}
-                      {record?.checkInTime && (
-                        <span className="text-white/40 text-xs">
-                          In: {record.checkInTime}
-                        </span>
-                      )}
-                      {record?.checkOutTime && (
-                        <span className="text-white/40 text-xs">
-                          Out: {record.checkOutTime}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  <span className={`text-sm ${isMe ? "text-accent-gold font-medium" : "text-white/70"}`}>
+                    {name} {isMe ? (locale === "th" ? "(ฉัน)" : "(me)") : ""}
+                  </span>
                 </div>
-
-                <div className="flex gap-2 shrink-0">
-                  {status !== "checked_in" && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => handleCheckIn(therapist.id)}
-                    >
-                      {t("attendance.checkin")}
-                    </Button>
-                  )}
-                  {status === "checked_in" && (
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => handleCheckOut(therapist.id)}
-                    >
-                      {t("attendance.checkout")}
-                    </Button>
+                <div className="flex items-center gap-3 text-xs">
+                  {rec && rec.status !== "not_checked_in" ? (
+                    <>
+                      <span className="text-white/50">
+                        {rec.checkInTime} - {rec.checkOutTime || (locale === "th" ? "ยังอยู่" : "active")}
+                      </span>
+                      <span className="text-accent-gold font-medium">
+                        {calcWorkHours(rec.checkInTime, rec.checkOutTime)} {locale === "th" ? "ชม." : "hrs"}
+                      </span>
+                      {rec.status === "checked_in" ? (
+                        <Badge variant="green">{locale === "th" ? "อยู่" : "In"}</Badge>
+                      ) : (
+                        <Badge variant="gray">{locale === "th" ? "ออก" : "Out"}</Badge>
+                      )}
+                    </>
+                  ) : (
+                    <Badge variant="red">{locale === "th" ? "ยังไม่มา" : "Absent"}</Badge>
                   )}
                 </div>
               </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Today's Log */}
-      <Card className="mt-6">
-        <h2 className="font-heading text-lg text-white mb-4">{t("attendance.status")}</h2>
-        <div className="space-y-2">
-          {attendance
-            .filter((a) => a.checkInTime)
-            .map((record) => {
-              const therapist = therapists.find((t) => t.id === record.therapistId);
-              if (!therapist) return null;
-              return (
-                <div
-                  key={record.therapistId}
-                  className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
-                >
-                  <span className="text-white/70 text-sm">
-                    {locale === "th" ? therapist.name.th : therapist.name.en}
-                  </span>
-                  <div className="flex items-center gap-3 text-xs text-white/40">
-                    {record.checkInTime && <span>In: {record.checkInTime}</span>}
-                    {record.checkOutTime && <span>Out: {record.checkOutTime}</span>}
-                  </div>
-                </div>
-              );
-            })}
+            );
+          })}
         </div>
       </Card>
     </div>

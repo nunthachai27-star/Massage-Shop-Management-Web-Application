@@ -75,6 +75,43 @@ export default async function HomePage() {
           </Link>
         </div>
       </section>
+
+      {/* Room Feature */}
+      <section className="py-12 px-4 max-w-3xl mx-auto">
+        <Card>
+          <div className="text-center py-4">
+            <span className="text-4xl mb-4 block">🚪</span>
+            <h2 className="font-heading text-2xl text-white mb-3">
+              {locale === "th" ? "ห้องส่วนตัว พร้อมห้องน้ำในตัว" : "Private Room with En-suite Bathroom"}
+            </h2>
+            <p className="text-white/60">
+              {locale === "th"
+                ? "สะอาด เป็นส่วนตัว และปลอดภัยทุกคิว"
+                : "Clean, private, and safe for every session"}
+            </p>
+          </div>
+        </Card>
+      </section>
+
+      {/* Promotion */}
+      <section className="py-12 px-4 max-w-3xl mx-auto">
+        <div className="bg-gradient-to-r from-accent-gold/20 to-accent-gold-dark/20 border border-accent-gold/30 rounded-2xl p-8 text-center">
+          <span className="text-4xl mb-4 block">🎁</span>
+          <h2 className="font-heading text-2xl text-accent-gold mb-3">
+            {locale === "th" ? "โปรโมชั่นพิเศษ" : "Special Promotion"}
+          </h2>
+          <p className="text-white text-lg mb-2">
+            {locale === "th"
+              ? "นวดครบ 5 ครั้ง ฟรี! 1 ครั้ง"
+              : "Complete 5 sessions, get 1 FREE!"}
+          </p>
+          <p className="text-white/50 text-sm">
+            {locale === "th"
+              ? "สะสมได้ ไม่หมดอายุ"
+              : "Accumulate visits, no expiration"}
+          </p>
+        </div>
+      </section>
     </>
   );
 }

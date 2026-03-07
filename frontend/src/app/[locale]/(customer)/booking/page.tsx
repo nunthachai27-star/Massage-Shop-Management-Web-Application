@@ -42,7 +42,7 @@ export default function BookingPage() {
       const today = new Date().toISOString().split("T")[0];
       api.getAvailableSlots(therapistId, today).then((slots) => {
         if (Array.isArray(slots) && slots.length > 0) {
-          setTimeSlots(slots.map((s: any) => ({ time: s.time || s, available: s.available !== false })));
+          setTimeSlots(slots.map((s: Record<string, unknown>) => ({ time: (s.time || s) as string, available: s.available !== false })));
         }
       }).catch(() => {});
     }

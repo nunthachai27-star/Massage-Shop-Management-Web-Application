@@ -8,7 +8,7 @@ import { transformBooking } from "@/lib/transform";
 const metrics = [
   { labelKey: "owner.totalCustomers", value: "12", icon: "👥" },
   { labelKey: "owner.dailyRevenue", value: "8,400", suffix: " ฿", icon: "💰" },
-  { labelKey: "owner.bedUtilization", value: "75", suffix: "%", icon: "🛏️" },
+  { labelKey: "owner.bedUtilization", value: "75", suffix: "%", icon: "🚪" },
 ];
 
 export default async function OwnerDashboardPage() {

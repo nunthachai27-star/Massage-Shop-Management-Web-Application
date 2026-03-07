@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS customers (
 CREATE TABLE IF NOT EXISTS bookings (
   id SERIAL PRIMARY KEY,
   customer_id INTEGER REFERENCES customers(id),
+  customer_name VARCHAR(255),
+  phone VARCHAR(20),
   service_id INTEGER REFERENCES services(id),
   therapist_id INTEGER REFERENCES therapists(id),
   bed_id INTEGER REFERENCES beds(id),
@@ -98,27 +100,34 @@ CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date);
 CREATE INDEX IF NOT EXISTS idx_attendance_therapist ON attendance(therapist_id);
 CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
 
--- Seed initial beds
+-- Seed beds (matching frontend: ห้อง 6-9)
 INSERT INTO beds (name, status) VALUES
-  ('Bed 1', 'available'),
-  ('Bed 2', 'available'),
-  ('Bed 3', 'available'),
-  ('Bed 4', 'available')
+  ('ห้อง 6', 'available'),
+  ('ห้อง 7', 'available'),
+  ('ห้อง 8', 'available'),
+  ('ห้อง 9', 'available')
 ON CONFLICT DO NOTHING;
 
--- Seed initial services
+-- Seed services (matching frontend exactly)
 INSERT INTO services (name_th, name_en, description_th, description_en, duration, price) VALUES
-  ('นวดแผนไทย', 'Thai Massage', 'นวดแผนไทยโบราณ ผ่อนคลายกล้ามเนื้อ', 'Traditional Thai massage for muscle relaxation', 60, 400),
-  ('นวดน้ำมัน', 'Oil Massage', 'นวดน้ำมันอโรมา ผ่อนคลายลึก', 'Aromatherapy oil massage for deep relaxation', 60, 600),
-  ('นวดน้ำมัน 2 ชม.', 'Oil Massage 2hr', 'นวดน้ำมันอโรมา 2 ชั่วโมง ผ่อนคลายอย่างเต็มที่', '2-hour aromatherapy oil massage for ultimate relaxation', 120, 1000),
-  ('นวดเท้า', 'Foot Massage', 'นวดเท้าและขา กดจุดสะท้อน', 'Foot and leg reflexology massage', 60, 350),
-  ('นวดศีรษะ คอ บ่า ไหล่', 'Head & Shoulder Massage', 'นวดศีรษะ คอ บ่า ไหล่ แก้ออฟฟิศซินโดรม', 'Head, neck & shoulder massage for office syndrome', 45, 300)
+  ('นวดไทย', 'Thai Massage', 'นวดแผนไทยโบราณ ผ่อนคลายกล้ามเนื้อ', 'Traditional Thai massage for muscle relaxation', 60, 400),
+  ('นวดน้ำมัน (อโรม่า) 1 ชม.', 'Aroma Oil Massage 1 hr', 'นวดน้ำมันอโรม่า ผ่อนคลายลึก ในห้องส่วนตัวพร้อมห้องน้ำในตัว', 'Aromatherapy oil massage in private room with en-suite bathroom', 60, 600),
+  ('นวดน้ำมัน (อโรม่า) 1.5 ชม.', 'Aroma Oil Massage 1.5 hr', 'นวดน้ำมันอโรม่า 1 ชั่วโมงครึ่ง ผ่อนคลายอย่างเต็มที่', '1.5-hour aromatherapy oil massage for deep relaxation', 90, 800),
+  ('นวดน้ำมัน (อโรม่า) 2 ชม.', 'Aroma Oil Massage 2 hr', 'นวดน้ำมันอโรม่า 2 ชั่วโมง ผ่อนคลายสุดพิเศษ', '2-hour aromatherapy oil massage for ultimate relaxation', 120, 1000)
 ON CONFLICT DO NOTHING;
 
--- Seed therapists with PINs
+-- Seed therapists with PINs (matching frontend: 7 therapists)
 INSERT INTO therapists (name_th, name_en, skills, rating, status, pin, experience) VALUES
-  ('สมศรี สุขใจ', 'Somsri Sukjai', ARRAY['Thai Massage','Foot Massage'], 4.9, 'offline', '1234', 10),
-  ('วิภา ใจดี', 'Wipa Jaidee', ARRAY['Oil Massage','Head & Shoulder'], 4.8, 'offline', '5678', 8),
-  ('มาลี สวยงาม', 'Malee Suayngam', ARRAY['Thai Massage','Oil Massage'], 4.7, 'offline', '9012', 5),
-  ('นภา รักสุข', 'Napa Raksuk', ARRAY['Oil Massage','Foot Massage'], 4.6, 'offline', '3456', 3)
+  ('หมอเจเจ', 'Mor JJ', ARRAY['นวดไทย','นวดอโรมา'], 4.9, 'offline', '1234', 10),
+  ('หมอเกิ้ล', 'Mor Koil', ARRAY['นวดอโรมา','นวดไทย'], 4.8, 'offline', '5678', 8),
+  ('หมอพลอย', 'Mor Ploy', ARRAY['นวดไทย','นวดอโรมา'], 4.7, 'offline', '9012', 5),
+  ('หมอเดียร์', 'Mor Dear', ARRAY['นวดอโรมา','นวดไทย'], 4.6, 'offline', '3456', 3),
+  ('หมอบี', 'Mor Bee', ARRAY['นวดไทย','นวดอโรมา'], 4.8, 'offline', '1111', 6),
+  ('หมอออม', 'Mor Aom', ARRAY['นวดอโรมา','นวดไทย'], 4.7, 'offline', '2222', 4),
+  ('หมอเค๊ก', 'Mor Cake', ARRAY['นวดไทย','นวดอโรมา'], 4.5, 'offline', '3333', 2)
+ON CONFLICT DO NOTHING;
+
+-- Seed owner account (password: admin123 — bcrypt hash)
+INSERT INTO staff (username, password_hash, role, name) VALUES
+  ('owner', '$2b$10$QrKJN3QkVpzWZlPL7B7VUOdW7MHPzrAZ3FQAqh4N.dCwrXHpKu9Pu', 'owner', 'Owner')
 ON CONFLICT DO NOTHING;

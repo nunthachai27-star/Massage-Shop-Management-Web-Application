@@ -8,8 +8,8 @@ export interface Bed {
 }
 
 export const beds: Bed[] = [
-  { id: 1, name: "Bed 1", status: "available" },
-  { id: 2, name: "Bed 2", status: "in_service", currentBookingId: 1 },
-  { id: 3, name: "Bed 3", status: "reserved", currentBookingId: 2 },
-  { id: 4, name: "Bed 4", status: "cleaning" },
+  { id: 1, name: "ห้อง 6", status: "available" },
+  { id: 2, name: "ห้อง 7", status: "in_service", currentBookingId: 1 },
+  { id: 3, name: "ห้อง 8", status: "reserved", currentBookingId: 2 },
+  { id: 4, name: "ห้อง 9", status: "cleaning" },
 ];

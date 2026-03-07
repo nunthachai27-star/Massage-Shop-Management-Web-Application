@@ -28,3 +28,10 @@ dist/
 
 # vercel
 .vercel
+
+# screenshots & test images
+*.png
+screenshots/
+
+# supabase CLI temp
+backend/supabase/.temp/

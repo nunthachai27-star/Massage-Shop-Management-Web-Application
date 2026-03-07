@@ -2,6 +2,7 @@ export type BookingStatus = "booked" | "checked_in" | "in_service" | "completed"
 
 export interface Booking {
   id: number;
+  customerId?: number;
   customerName: string;
   phone: string;
   serviceId: number;
@@ -32,7 +33,7 @@ export const bookings: Booking[] = [
     phone: "089-876-5432",
     serviceId: 2,
     therapistId: 1,
-    bedId: 3,
+    bedId: 0,
     startTime: "2026-03-07T11:00:00",
     endTime: "2026-03-07T12:00:00",
     status: "booked",
@@ -44,7 +45,7 @@ export const bookings: Booking[] = [
     phone: "062-111-2222",
     serviceId: 4,
     therapistId: 2,
-    bedId: 1,
+    bedId: 0,
     startTime: "2026-03-07T13:00:00",
     endTime: "2026-03-07T14:00:00",
     status: "booked",
