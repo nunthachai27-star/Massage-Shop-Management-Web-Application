@@ -11,8 +11,8 @@
   --color-surface-dark: #0f0f1a;
   --color-surface-card: #1e1e30;
   --color-surface-light: #faf7f2;
-  --font-heading: "Playfair Display", "Noto Serif Thai", serif;
-  --font-body: "Inter", "Noto Sans Thai", sans-serif;
+  --font-heading: var(--font-playfair), var(--font-noto-serif-thai), serif;
+  --font-body: var(--font-inter), var(--font-noto-sans-thai), sans-serif;
 }
 
 @layer base {
