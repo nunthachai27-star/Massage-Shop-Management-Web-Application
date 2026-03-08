@@ -97,11 +97,11 @@ function LoyaltyProgress({ visitCount, locale }: { visitCount: number; locale: s
 export default function StaffBookingsPage() {
   const t = useTranslations();
   const locale = useLocale();
-  const [bookings, setBookings] = useState<Booking[]>(mockBookings);
-  const [services, setServices] = useState<Service[]>(mockServices);
-  const [therapists, setTherapists] = useState<Therapist[]>(mockTherapists);
-  const [beds, setBeds] = useState<Bed[]>(mockBeds);
-  const [customerList, setCustomerList] = useState<Customer[]>(mockCustomers);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [therapists, setTherapists] = useState<Therapist[]>([]);
+  const [beds, setBeds] = useState<Bed[]>([]);
+  const [customerList, setCustomerList] = useState<Customer[]>([]);
   const [showForm, setShowForm] = useState(false);
 
   // Customer selection state

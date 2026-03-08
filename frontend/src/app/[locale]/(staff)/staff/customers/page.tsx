@@ -8,7 +8,7 @@ import { customers as mockCustomers, createCustomer, type Customer } from "@/dat
 
 export default function CustomersPage() {
   const locale = useLocale();
-  const [customerList, setCustomerList] = useState<Customer[]>(mockCustomers);
+  const [customerList, setCustomerList] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");

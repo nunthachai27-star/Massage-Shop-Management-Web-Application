@@ -42,9 +42,9 @@ export default function StaffSessionPage() {
     setMounted(true);
   }, []);
 
-  const [bookings, setBookings] = useState<Booking[]>(mockBookings);
-  const [services, setServices] = useState<Service[]>(mockServices);
-  const [beds, setBeds] = useState<Bed[]>(mockBeds);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [beds, setBeds] = useState<Bed[]>([]);
   const [now, setNow] = useState(new Date());
 
   // Check-in state
