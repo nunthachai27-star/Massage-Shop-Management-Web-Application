@@ -51,6 +51,12 @@ export default function StaffSessionPage() {
   const [checkinBookingId, setCheckinBookingId] = useState<number | null>(null);
   const [checkinBedId, setCheckinBedId] = useState(0);
 
+  // Quick start (walk-in) state
+  const [showQuickStart, setShowQuickStart] = useState(false);
+  const [qsServiceId, setQsServiceId] = useState(0);
+  const [qsBedId, setQsBedId] = useState(0);
+  const [qsLoading, setQsLoading] = useState(false);
+
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(interval);
@@ -160,6 +166,61 @@ export default function StaffSessionPage() {
     api.updateBookingStatus(bookingId, "checkout").catch(() => {});
   };
 
+  // Quick start: create booking + start service immediately
+  const handleQuickStart = async () => {
+    if (!qsServiceId || !qsBedId || !therapist) return;
+    setQsLoading(true);
+    const service = services.find(s => s.id === qsServiceId);
+    if (!service) return;
+
+    const now2 = new Date();
+    const endTime = new Date(now2.getTime() + service.duration * 60000);
+
+    const bookingData = {
+      customer_name: locale === "th" ? "ลูกค้า Walk-in" : "Walk-in Customer",
+      phone: "-",
+      service_id: qsServiceId,
+      therapist_id: therapist.id,
+      bed_id: qsBedId,
+      start_time: now2.toISOString(),
+      end_time: endTime.toISOString(),
+      status: "in_service",
+    };
+
+    try {
+      const result = await api.createBooking(bookingData);
+      const newBooking = transformBooking(result as Record<string, unknown>);
+      setBookings(prev => [...prev, newBooking]);
+      setBeds(prev => prev.map(b => b.id === qsBedId ? { ...b, status: "in_service" as const, currentBookingId: newBooking.id } : b));
+      setShowQuickStart(false);
+      setQsServiceId(0);
+      setQsBedId(0);
+    } catch {
+      // fallback: add locally
+      const fakeId = Date.now();
+      const newBooking: Booking = {
+        id: fakeId,
+        customerName: locale === "th" ? "ลูกค้า Walk-in" : "Walk-in Customer",
+        phone: "-",
+        serviceId: qsServiceId,
+        therapistId: therapist.id,
+        bedId: qsBedId,
+        startTime: now2.toISOString(),
+        endTime: endTime.toISOString(),
+        status: "in_service",
+        createdAt: now2.toISOString(),
+      };
+      setBookings(prev => [...prev, newBooking]);
+      setBeds(prev => prev.map(b => b.id === qsBedId ? { ...b, status: "in_service" as const, currentBookingId: fakeId } : b));
+      setShowQuickStart(false);
+      setQsServiceId(0);
+      setQsBedId(0);
+    }
+    setQsLoading(false);
+  };
+
+  const availableBeds = beds.filter(b => b.status === "available");
+
   if (!mounted || !therapist) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -221,8 +282,104 @@ export default function StaffSessionPage() {
         </Card>
       </div>
 
+      {/* Quick Start Button */}
+      {!showQuickStart && (
+        <Button
+          variant="primary"
+          className="w-full mb-4"
+          onClick={() => setShowQuickStart(true)}
+        >
+          {locale === "th" ? "➕ เริ่มงานใหม่" : "➕ Start New Session"}
+        </Button>
+      )}
+
+      {/* Quick Start Panel */}
+      {showQuickStart && (
+        <Card className="mb-4">
+          <h3 className="text-white font-heading text-lg mb-4">
+            {locale === "th" ? "เริ่มงานใหม่" : "Start New Session"}
+          </h3>
+
+          {/* Service Selection - 2 step */}
+          <p className="text-white/50 text-sm mb-2">
+            {locale === "th" ? "เลือกบริการ" : "Select Service"}
+          </p>
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {services.map(s => (
+              <button
+                key={s.id}
+                onClick={() => setQsServiceId(s.id)}
+                className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                  qsServiceId === s.id
+                    ? "border-accent-gold bg-accent-gold/10"
+                    : "border-white/10 hover:border-white/30"
+                }`}
+              >
+                <p className={`text-sm font-medium ${qsServiceId === s.id ? "text-accent-gold" : "text-white"}`}>
+                  {locale === "th" ? s.name.th : s.name.en}
+                </p>
+                <p className="text-white/40 text-xs mt-1">
+                  {s.duration} {locale === "th" ? "นาที" : "min"} — ฿{s.price.toLocaleString()}
+                </p>
+              </button>
+            ))}
+          </div>
+
+          {/* Room Selection */}
+          <p className="text-white/50 text-sm mb-2">
+            {locale === "th" ? "เลือกห้อง" : "Select Room"}
+          </p>
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            {beds.map(b => {
+              const isAvailable = b.status === "available";
+              return (
+                <button
+                  key={b.id}
+                  onClick={() => isAvailable && setQsBedId(b.id)}
+                  disabled={!isAvailable}
+                  className={`p-3 rounded-lg border text-center transition-all ${
+                    !isAvailable
+                      ? "border-white/5 text-white/20 cursor-not-allowed"
+                      : qsBedId === b.id
+                        ? "border-accent-gold bg-accent-gold/10 text-accent-gold cursor-pointer"
+                        : "border-white/10 text-white/70 hover:border-white/30 cursor-pointer"
+                  }`}
+                >
+                  <p className="font-medium text-sm">{b.name}</p>
+                  {!isAvailable && (
+                    <p className="text-xs mt-1 opacity-40">{locale === "th" ? "ไม่ว่าง" : "Busy"}</p>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button
+              variant="primary"
+              className="flex-1"
+              onClick={handleQuickStart}
+              disabled={!qsServiceId || !qsBedId || qsLoading}
+            >
+              {qsLoading
+                ? "..."
+                : locale === "th"
+                  ? "เริ่มงาน"
+                  : "Start"}
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => { setShowQuickStart(false); setQsServiceId(0); setQsBedId(0); }}
+            >
+              {locale === "th" ? "ยกเลิก" : "Cancel"}
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {/* Booking Cards */}
-      {myBookings.length === 0 ? (
+      {myBookings.length === 0 && !showQuickStart ? (
         <Card>
           <div className="text-center py-8">
             <p className="text-white/40 text-lg">{locale === "th" ? "ไม่มีรายการ" : "No bookings"}</p>
