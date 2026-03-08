@@ -254,16 +254,24 @@ export default function StaffSessionPage() {
         </div>
       </div>
 
-      {/* Commission - Large Display */}
-      <Card className="text-center !py-5 mb-4 md:mb-6 border border-emerald-500/20 bg-emerald-500/5">
-        <p className="text-white/50 text-sm mb-1">{locale === "th" ? "ค่าคอมมิชชั่นวันนี้" : "Today's Commission"}</p>
-        <p className="text-4xl md:text-5xl font-bold text-emerald-400 font-mono">
-          ฿{totalCommission.toLocaleString()}
-        </p>
-        <p className="text-white/30 text-xs mt-2">
-          {commissionBookings.length} {locale === "th" ? "รายการ" : "session(s)"}
-        </p>
-      </Card>
+      {/* Commission - Hero Display */}
+      <div className="relative mb-4 md:mb-6 rounded-2xl overflow-hidden border-2 border-emerald-400/40 bg-gradient-to-br from-emerald-900/40 via-emerald-800/20 to-surface-card p-6 md:p-8 text-center">
+        {/* Glow effect */}
+        <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent pointer-events-none" />
+        <div className="relative">
+          <p className="text-emerald-300/70 text-sm md:text-base font-medium tracking-wide uppercase mb-2">
+            💰 {locale === "th" ? "ค่าคอมมิชชั่นวันนี้" : "Today's Commission"}
+          </p>
+          <p className="text-5xl md:text-7xl font-extrabold text-emerald-400 font-mono leading-none drop-shadow-[0_0_20px_rgba(52,211,153,0.3)]">
+            ฿{totalCommission.toLocaleString()}
+          </p>
+          <div className="mt-3 inline-flex items-center gap-2 bg-emerald-500/15 px-4 py-1.5 rounded-full">
+            <span className="text-emerald-300 text-sm font-medium">
+              {commissionBookings.length} {locale === "th" ? "รายการ" : "session(s)"}
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2 md:gap-3 mb-4 md:mb-6">

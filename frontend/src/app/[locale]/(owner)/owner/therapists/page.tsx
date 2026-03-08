@@ -121,19 +121,39 @@ export default function TherapistPerformancePage() {
         </button>
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3 mb-4 md:mb-6">
+      {/* Commission Hero */}
+      <div className="relative mb-4 md:mb-6 rounded-2xl overflow-hidden border-2 border-emerald-400/40 bg-gradient-to-br from-emerald-900/40 via-emerald-800/20 to-surface-card p-5 md:p-6 text-center">
+        <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent pointer-events-none" />
+        <div className="relative">
+          <p className="text-emerald-300/70 text-sm font-medium tracking-wide uppercase mb-1">
+            💰 {locale === "th" ? "ค่าคอมรวมทั้งหมด" : "Total Commission"}
+          </p>
+          <p className="text-5xl md:text-7xl font-extrabold text-emerald-400 font-mono leading-none drop-shadow-[0_0_20px_rgba(52,211,153,0.3)]">
+            ฿{totalCommission.toLocaleString()}
+          </p>
+          <div className="mt-3 flex items-center justify-center gap-4">
+            <span className="inline-flex items-center gap-1 bg-emerald-500/15 px-3 py-1 rounded-full text-emerald-300 text-sm font-medium">
+              🧑‍⚕️ {commissions.length} {locale === "th" ? "คน" : "therapist(s)"}
+            </span>
+            <span className="inline-flex items-center gap-1 bg-green-500/15 px-3 py-1 rounded-full text-green-400 text-sm font-medium">
+              ✅ {paidCount} {locale === "th" ? "จ่ายแล้ว" : "paid"}
+            </span>
+            <span className="inline-flex items-center gap-1 bg-orange-500/15 px-3 py-1 rounded-full text-orange-400 text-sm font-medium">
+              ⏳ {pendingCount} {locale === "th" ? "รอจ่าย" : "pending"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-3 gap-2 md:gap-3 mb-4 md:mb-6">
         <Card className="text-center !py-3">
           <p className="text-2xl font-bold text-accent-gold">{totalSessions}</p>
           <p className="text-white/40 text-xs mt-1">{locale === "th" ? "รวมงาน" : "Jobs"}</p>
         </Card>
         <Card className="text-center !py-3">
-          <p className="text-2xl font-bold text-blue-400">{totalRevenue.toLocaleString()}</p>
-          <p className="text-white/40 text-xs mt-1">{locale === "th" ? "รายได้ (฿)" : "Revenue (฿)"}</p>
-        </Card>
-        <Card className="text-center !py-3">
-          <p className="text-2xl font-bold text-emerald-400">{totalCommission.toLocaleString()}</p>
-          <p className="text-white/40 text-xs mt-1">{locale === "th" ? "ค่าคอม (฿)" : "Comm. (฿)"}</p>
+          <p className="text-2xl font-bold text-blue-400">฿{totalRevenue.toLocaleString()}</p>
+          <p className="text-white/40 text-xs mt-1">{locale === "th" ? "รายได้" : "Revenue"}</p>
         </Card>
         <Card className="text-center !py-3">
           <div className="flex items-center justify-center gap-2">
@@ -141,20 +161,21 @@ export default function TherapistPerformancePage() {
             <span className="text-white/30">/</span>
             <span className="text-orange-400 font-bold">{pendingCount}</span>
           </div>
-          <p className="text-white/40 text-xs mt-1">{locale === "th" ? "จ่ายแล้ว/รอจ่าย" : "Paid/Pending"}</p>
+          <p className="text-white/40 text-xs mt-1">{locale === "th" ? "จ่าย/รอ" : "Paid/Pending"}</p>
         </Card>
       </div>
 
-      {/* Therapist List */}
+      {/* Therapist List — only show therapists with work */}
       {loading ? (
         <p className="text-white/50 text-center py-8">{locale === "th" ? "กำลังโหลด..." : "Loading..."}</p>
-      ) : commissions.length === 0 ? (
+      ) : commissions.filter((c) => c.total_sessions > 0).length === 0 ? (
         <Card className="text-center !py-8">
-          <p className="text-white/50">{t("noData")}</p>
+          <p className="text-white/50 text-lg">{locale === "th" ? "วันนี้ยังไม่มีผลงาน" : "No work recorded for this day"}</p>
+          <p className="text-white/30 text-sm mt-2">{locale === "th" ? "ข้อมูลจะแสดงเมื่อหมอนวดมีรายการบริการ" : "Data will appear when therapists complete sessions"}</p>
         </Card>
       ) : (
         <div className="space-y-3">
-          {commissions.map((c) => {
+          {commissions.filter((c) => c.total_sessions > 0).map((c) => {
             const name = locale === "th" ? c.therapists?.name_th : c.therapists?.name_en;
             const initial = (name || "?").charAt(0);
             const isPaid = c.status === "paid";
@@ -196,9 +217,9 @@ export default function TherapistPerformancePage() {
                         <p className="text-blue-400 text-base md:text-lg font-bold">{c.total_revenue.toLocaleString()}</p>
                         <p className="text-white/50 text-[10px] md:text-xs">{locale === "th" ? "รายได้" : "Revenue"}</p>
                       </div>
-                      <div className="bg-surface-dark rounded-lg p-1.5 md:p-2 text-center">
-                        <p className={`text-base md:text-lg font-bold ${isPaid ? "text-green-400" : "text-emerald-400"}`}>
-                          {c.total_commission.toLocaleString()}
+                      <div className={`rounded-lg p-1.5 md:p-2 text-center border ${c.total_commission > 0 ? "bg-emerald-500/10 border-emerald-500/30" : "bg-surface-dark border-transparent"}`}>
+                        <p className={`text-lg md:text-xl font-extrabold ${isPaid ? "text-green-400" : "text-emerald-400"}`}>
+                          ฿{c.total_commission.toLocaleString()}
                         </p>
                         <p className="text-white/50 text-[10px] md:text-xs">{locale === "th" ? "ค่าคอม" : "Comm."}</p>
                       </div>
