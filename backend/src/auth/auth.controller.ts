@@ -19,6 +19,11 @@ export class AuthController {
     return this.authService.ownerLogin(dto.username, dto.password);
   }
 
+  @Post("owner-pin-login")
+  ownerPinLogin(@Body() dto: PinLoginDto) {
+    return this.authService.ownerPinLogin(dto.pin);
+  }
+
   @Patch("change-pin")
   changePin(@Body() body: { therapist_id: number; current_pin: string; new_pin: string }) {
     return this.authService.changePin(body.therapist_id, body.current_pin, body.new_pin);

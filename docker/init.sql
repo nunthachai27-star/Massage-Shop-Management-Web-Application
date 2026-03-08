@@ -74,7 +74,8 @@ CREATE TABLE IF NOT EXISTS staff (
   username TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
   role TEXT DEFAULT 'staff',
-  name TEXT
+  name TEXT,
+  pin TEXT
 );
 
 CREATE TABLE IF NOT EXISTS attendance (
@@ -151,10 +152,10 @@ ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
 -- Owner account: admin / admin123
 -- Password hash for 'admin123' with bcrypt (10 rounds)
-INSERT INTO staff (id, username, password_hash, role, name) VALUES
-  (1, 'admin', '$2b$10$nuvKDFsVOMTq7DWz0AIG9eqTk48E9UVZsRH6np60PD5NktTj8uaRO', 'owner', 'Admin Owner')
+INSERT INTO staff (id, username, password_hash, role, name, pin) VALUES
+  (1, 'admin', '$2b$10$nuvKDFsVOMTq7DWz0AIG9eqTk48E9UVZsRH6np60PD5NktTj8uaRO', 'owner', 'Admin Owner', '0000')
 ON CONFLICT (id) DO UPDATE SET
-  username = EXCLUDED.username, password_hash = EXCLUDED.password_hash;
+  username = EXCLUDED.username, password_hash = EXCLUDED.password_hash, pin = EXCLUDED.pin;
 
 -- Sample customers
 INSERT INTO customers (id, name, phone, customer_code, visit_count) VALUES

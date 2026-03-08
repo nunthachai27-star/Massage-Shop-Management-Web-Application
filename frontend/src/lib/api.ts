@@ -112,6 +112,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ username, password }),
     }),
+  ownerPinLogin: (pin: string) =>
+    apiFetch<ApiRecord>("/auth/owner-pin-login", {
+      method: "POST",
+      body: JSON.stringify({ pin }),
+    }),
   changePin: (therapistId: number, currentPin: string, newPin: string) =>
     apiFetch<ApiRecord>("/auth/change-pin", {
       method: "PATCH",

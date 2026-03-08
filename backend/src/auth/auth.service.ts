@@ -71,6 +71,30 @@ export class AuthService {
     return { message: "PIN changed successfully" };
   }
 
+  async ownerPinLogin(pin: string) {
+    const { data: staff } = await this.supabase.getClient()
+      .from("staff")
+      .select("id, username, role, name")
+      .eq("pin", pin)
+      .eq("role", "owner")
+      .single();
+
+    if (!staff) {
+      throw new UnauthorizedException("Invalid PIN");
+    }
+
+    const token = this.jwtService.sign({
+      id: staff.id,
+      name: staff.name,
+      role: staff.role,
+    });
+
+    return {
+      access_token: token,
+      user: { id: staff.id, username: staff.username, name: staff.name, role: staff.role },
+    };
+  }
+
   async ownerLogin(username: string, password: string) {
     const { data: staff } = await this.supabase.getClient()
       .from("staff")
