@@ -75,7 +75,7 @@ export default function StaffSessionPage() {
   // Filter bookings for this therapist only, exclude checkout
   const myBookings = therapist
     ? bookings
-        .filter((b) => b.therapistId === therapist.id && b.status !== "checkout")
+        .filter((b) => b.therapistId === therapist.id && b.status !== "checkout" && b.status !== "cancelled")
         .sort((a, b) => {
           const order = { booked: 1, in_service: 0, completed: 2 };
           const oa = order[a.status as keyof typeof order] ?? 3;
