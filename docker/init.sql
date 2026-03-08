@@ -156,8 +156,15 @@ INSERT INTO staff (id, username, password_hash, role, name) VALUES
 ON CONFLICT (id) DO UPDATE SET
   username = EXCLUDED.username, password_hash = EXCLUDED.password_hash;
 
+-- Sample customers
+INSERT INTO customers (id, name, phone, customer_code, visit_count) VALUES
+  (1, 'นันทชัย', '-', 'C0001', 1)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name, phone = EXCLUDED.phone, visit_count = EXCLUDED.visit_count;
+
 -- Reset sequences
 SELECT setval('services_id_seq', (SELECT MAX(id) FROM services));
 SELECT setval('therapists_id_seq', (SELECT COALESCE(MAX(id), 1) FROM therapists));
 SELECT setval('beds_id_seq', (SELECT MAX(id) FROM beds));
 SELECT setval('staff_id_seq', (SELECT MAX(id) FROM staff));
+SELECT setval('customers_id_seq', (SELECT COALESCE(MAX(id), 1) FROM customers));
