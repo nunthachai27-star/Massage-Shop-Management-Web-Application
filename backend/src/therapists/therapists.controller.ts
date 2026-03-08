@@ -20,7 +20,8 @@ export class TherapistsController {
   constructor(private readonly therapistsService: TherapistsService) {}
 
   @Get()
-  findAll(@Query("status") status?: string) {
+  findAll(@Query("status") status?: string, @Query("all") all?: string) {
+    if (all === "true") return this.therapistsService.findAllIncludingInactive();
     return this.therapistsService.findAll(status);
   }
 
@@ -48,6 +49,11 @@ export class TherapistsController {
     @Body("status") status: string,
   ) {
     return this.therapistsService.updateStatus(id, status);
+  }
+
+  @Patch(":id/reactivate")
+  reactivate(@Param("id", ParseIntPipe) id: number) {
+    return this.therapistsService.reactivate(id);
   }
 
   @Delete(":id")

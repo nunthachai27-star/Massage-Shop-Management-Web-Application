@@ -33,9 +33,9 @@ export default async function HomePage() {
           <p className="text-accent-cream text-lg md:text-xl mb-8 opacity-80">
             {t("home.subtitle")}
           </p>
-          <Link href="/services">
+          <Link href="/login">
             <Button size="lg" variant="primary">
-              {t("home.cta")}
+              {t("common.login")}
             </Button>
           </Link>
         </div>
@@ -66,13 +66,6 @@ export default async function HomePage() {
               </div>
             </Card>
           ))}
-        </div>
-        <div className="text-center mt-10">
-          <Link href="/services">
-            <Button variant="outline" size="md">
-              {t("services.title")}
-            </Button>
-          </Link>
         </div>
       </section>
 

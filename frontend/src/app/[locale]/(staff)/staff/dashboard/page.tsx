@@ -39,7 +39,7 @@ export default async function StaffDashboardPage() {
 
   return (
     <div>
-      <h1 className="font-heading text-2xl text-white mb-6">{t("staff.beds")}</h1>
+      <h1 className="font-heading text-xl md:text-2xl text-white mb-4 md:mb-6">{t("staff.beds")}</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {beds.map((bed) => {
           const config = statusConfig[bed.status];
@@ -87,9 +87,7 @@ export default async function StaffDashboardPage() {
                   </div>
                 </div>
               )}
-              {!booking && bed.status === "available" && (
-                <p className="text-white/30 text-sm">---</p>
-              )}
+              {/* ห้องว่าง — ไม่แสดงข้อมูล */}
             </Card>
           );
         })}

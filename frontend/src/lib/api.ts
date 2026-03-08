@@ -25,6 +25,16 @@ export const api = {
   // Therapists
   getTherapists: (status?: string) =>
     apiFetch<ApiRecord[]>(`/therapists${status ? `?status=${status}` : ""}`),
+  getAllTherapists: () =>
+    apiFetch<ApiRecord[]>("/therapists?all=true"),
+  createTherapist: (data: Record<string, unknown>) =>
+    apiFetch<ApiRecord>("/therapists", { method: "POST", body: JSON.stringify(data) }),
+  updateTherapist: (id: number, data: Record<string, unknown>) =>
+    apiFetch<ApiRecord>(`/therapists/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deactivateTherapist: (id: number) =>
+    apiFetch<ApiRecord>(`/therapists/${id}`, { method: "DELETE" }),
+  reactivateTherapist: (id: number) =>
+    apiFetch<ApiRecord>(`/therapists/${id}/reactivate`, { method: "PATCH" }),
 
   // Bookings
   getAvailableSlots: (therapistId: number, date: string, duration?: number) =>
@@ -81,6 +91,16 @@ export const api = {
   incrementVisit: (customerId: number) =>
     apiFetch<ApiRecord>(`/customers/${customerId}/visit`, { method: "PATCH" }),
 
+  // Commissions
+  getCommissions: (date?: string) => {
+    const qs = date ? `?date=${date}` : "";
+    return apiFetch<ApiRecord[]>(`/commissions${qs}`);
+  },
+  markCommissionPaid: (id: number) =>
+    apiFetch<ApiRecord>(`/commissions/${id}/paid`, { method: "PATCH" }),
+  markCommissionUnpaid: (id: number) =>
+    apiFetch<ApiRecord>(`/commissions/${id}/unpaid`, { method: "PATCH" }),
+
   // Auth
   pinLogin: (pin: string) =>
     apiFetch<ApiRecord>("/auth/pin-login", {
@@ -91,5 +111,10 @@ export const api = {
     apiFetch<ApiRecord>("/auth/owner-login", {
       method: "POST",
       body: JSON.stringify({ username, password }),
+    }),
+  changePin: (therapistId: number, currentPin: string, newPin: string) =>
+    apiFetch<ApiRecord>("/auth/change-pin", {
+      method: "PATCH",
+      body: JSON.stringify({ therapist_id: therapistId, current_pin: currentPin, new_pin: newPin }),
     }),
 };

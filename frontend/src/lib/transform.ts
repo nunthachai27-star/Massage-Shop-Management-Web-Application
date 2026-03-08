@@ -13,13 +13,16 @@ export function transformService(s: ApiRecord): Service {
   // If already in frontend format (has nested name object), return as-is
   if (s.name && typeof s.name === "object") return s as unknown as Service;
 
+  const nameTh = s.name_th as string;
+  const category = nameTh.includes("อโรม่า") || nameTh.includes("น้ำมัน") ? "aroma" : "thai";
   return {
     id: s.id as number,
-    name: { th: s.name_th as string, en: s.name_en as string },
+    name: { th: nameTh, en: s.name_en as string },
     description: { th: (s.description_th || "") as string, en: (s.description_en || "") as string },
     duration: s.duration as number,
     price: Number(s.price),
     image: (s.image || "/images/placeholder.jpg") as string,
+    category,
   };
 }
 

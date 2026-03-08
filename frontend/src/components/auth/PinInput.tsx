@@ -2,16 +2,17 @@
 
 import { useState } from "react";
 
-interface PinInputProps {
+export interface PinInputProps {
   length?: number;
   onComplete: (pin: string) => void;
+  disabled?: boolean;
 }
 
-export function PinInput({ length = 4, onComplete }: PinInputProps) {
+export function PinInput({ length = 4, onComplete, disabled }: PinInputProps) {
   const [pin, setPin] = useState("");
 
   const handleDigit = (digit: string) => {
-    if (pin.length >= length) return;
+    if (disabled || pin.length >= length) return;
     const newPin = pin + digit;
     setPin(newPin);
     if (newPin.length === length) {

@@ -12,6 +12,16 @@ import { beds as mockBeds, type Bed } from "@/data/beds";
 import { api } from "@/lib/api";
 import { transformBooking, transformService, transformBed } from "@/lib/transform";
 
+// Commission calculation: 600→100, 800→150, 1000→200, Thai massage → half
+function getCommission(price: number, isThaiMassage: boolean): number {
+  let commission = 0;
+  if (price >= 1000) commission = 250;
+  else if (price >= 800) commission = 200;
+  else if (price >= 600) commission = 100;
+  else return 0;
+  return isThaiMassage ? Math.round(commission / 2) : commission;
+}
+
 const statusConfig: Record<string, { label: { th: string; en: string }; variant: "blue" | "gold" | "green" | "gray" }> = {
   booked: { label: { th: "รอเช็คอิน", en: "Waiting" }, variant: "blue" },
   in_service: { label: { th: "กำลังให้บริการ", en: "In Service" }, variant: "green" },
@@ -23,11 +33,14 @@ export default function StaffSessionPage() {
   const t = useTranslations();
   const locale = useLocale();
 
-  const [therapist] = useState<Therapist | null>(() => {
-    if (typeof window === "undefined") return null;
+  const [therapist, setTherapist] = useState<Therapist | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
     const stored = localStorage.getItem("loggedInTherapist");
-    return stored ? JSON.parse(stored) : null;
-  });
+    if (stored) setTherapist(JSON.parse(stored));
+    setMounted(true);
+  }, []);
 
   const [bookings, setBookings] = useState<Booking[]>(mockBookings);
   const [services, setServices] = useState<Service[]>(mockServices);
@@ -64,6 +77,17 @@ export default function StaffSessionPage() {
           return oa - ob;
         })
     : [];
+
+  // Commission summary: count from in_service + completed bookings
+  const commissionBookings = therapist
+    ? bookings.filter((b) => b.therapistId === therapist.id && (b.status === "in_service" || b.status === "completed" || b.status === "checkout"))
+    : [];
+  const totalCommission = commissionBookings.reduce((sum, b) => {
+    const service = services.find((s) => s.id === b.serviceId);
+    if (!service) return sum;
+    const isThaiMassage = service.name.th.includes("แผนไทย");
+    return sum + getCommission(service.price, isThaiMassage);
+  }, 0);
 
   // Check-in: assign room and start service
   const handleCheckin = (bookingId: number) => {
@@ -136,14 +160,16 @@ export default function StaffSessionPage() {
     api.updateBookingStatus(bookingId, "checkout").catch(() => {});
   };
 
-  if (!therapist) {
+  if (!mounted || !therapist) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Card>
-          <p className="text-white/50 text-center py-8">
-            {locale === "th" ? "กรุณาเข้าสู่ระบบก่อน" : "Please login first"}
-          </p>
-        </Card>
+        {mounted && (
+          <Card>
+            <p className="text-white/50 text-center py-8">
+              {locale === "th" ? "กรุณาเข้าสู่ระบบก่อน" : "Please login first"}
+            </p>
+          </Card>
+        )}
       </div>
     );
   }
@@ -153,22 +179,22 @@ export default function StaffSessionPage() {
   return (
     <div>
       {/* Header with therapist info */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4 md:mb-6">
         <div>
-          <h1 className="font-heading text-2xl text-white">{t("staff.session")}</h1>
-          <p className="text-white/50 text-sm mt-1">
+          <h1 className="font-heading text-xl md:text-2xl text-white">{t("staff.session")}</h1>
+          <p className="text-white/50 text-xs md:text-sm mt-1">
             {displayName} — {myBookings.length} {locale === "th" ? "รายการ" : "booking(s)"}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-accent-gold text-2xl font-bold font-mono">
+          <p className="text-accent-gold text-lg md:text-2xl font-bold font-mono">
             {now.toLocaleTimeString("th", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
           </p>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-4 gap-2 md:gap-3 mb-4 md:mb-6">
         <Card className="text-center !py-3">
           <p className="text-2xl font-bold text-blue-400">
             {myBookings.filter((b) => b.status === "booked").length}
@@ -186,6 +212,12 @@ export default function StaffSessionPage() {
             {myBookings.filter((b) => b.status === "completed").length}
           </p>
           <p className="text-white/40 text-xs mt-1">{locale === "th" ? "เสร็จแล้ว" : "Done"}</p>
+        </Card>
+        <Card className="text-center !py-3">
+          <p className="text-2xl font-bold text-emerald-400">
+            {totalCommission.toLocaleString()}
+          </p>
+          <p className="text-white/40 text-xs mt-1">{locale === "th" ? "ค่าคอม (฿)" : "Comm. (฿)"}</p>
         </Card>
       </div>
 
@@ -206,6 +238,8 @@ export default function StaffSessionPage() {
             const service = services.find((s) => s.id === booking.serviceId);
             const bed = booking.bedId ? beds.find((b) => b.id === booking.bedId) : null;
             const isCheckinOpen = checkinBookingId === booking.id;
+            const isThaiMassage = service ? service.name.th.includes("แผนไทย") : false;
+            const bookingCommission = service ? getCommission(service.price, isThaiMassage) : 0;
 
             // Progress calculation for in_service
             const startTime = new Date(booking.startTime);
@@ -260,6 +294,12 @@ export default function StaffSessionPage() {
                     <div>
                       <span className="text-white/50">{locale === "th" ? "โทร: " : "Phone: "}</span>
                       <span className="text-white">{booking.phone}</span>
+                    </div>
+                  )}
+                  {bookingCommission > 0 && (
+                    <div>
+                      <span className="text-white/50">{locale === "th" ? "ค่าคอม: " : "Commission: "}</span>
+                      <span className="text-emerald-400 font-medium">฿{bookingCommission}{isThaiMassage ? <span className="text-white/30 text-xs ml-1">({locale === "th" ? "นวดไทย ½" : "Thai ½"})</span> : null}</span>
                     </div>
                   )}
                 </div>

@@ -36,14 +36,65 @@ function calcWorkHours(checkIn?: string, checkOut?: string): string {
 export default function AttendancePage() {
   const t = useTranslations();
   const locale = useLocale();
-  const [therapist] = useState<Therapist | null>(() => {
-    if (typeof window === "undefined") return null;
-    const stored = localStorage.getItem("loggedInTherapist");
-    return stored ? JSON.parse(stored) : null;
-  });
+  const [therapist, setTherapist] = useState<Therapist | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [record, setRecord] = useState<AttendanceRecord>({ status: "not_checked_in" });
   const [currentTime, setCurrentTime] = useState(new Date());
   const [allRecords, setAllRecords] = useState<Record<number, AttendanceRecord>>({});
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [currentPin, setCurrentPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [pinSuccess, setPinSuccess] = useState(false);
+
+  const handleChangePin = async () => {
+    setPinError("");
+    if (!currentPin || currentPin.length !== 4) {
+      setPinError(locale === "th" ? "กรุณาใส่ PIN ปัจจุบัน 4 หลัก" : "Enter current 4-digit PIN");
+      return;
+    }
+    if (!newPin || newPin.length !== 4) {
+      setPinError(locale === "th" ? "PIN ใหม่ต้อง 4 หลัก" : "New PIN must be 4 digits");
+      return;
+    }
+    if (newPin !== confirmPin) {
+      setPinError(locale === "th" ? "PIN ใหม่ไม่ตรงกัน" : "New PINs don't match");
+      return;
+    }
+    if (currentPin === newPin) {
+      setPinError(locale === "th" ? "PIN ใหม่ต้องไม่เหมือนเดิม" : "New PIN must be different");
+      return;
+    }
+    try {
+      await api.changePin(therapist!.id, currentPin, newPin);
+      setPinSuccess(true);
+      setTimeout(() => {
+        setShowPinModal(false);
+        setPinSuccess(false);
+        setCurrentPin("");
+        setNewPin("");
+        setConfirmPin("");
+      }, 1500);
+    } catch {
+      setPinError(locale === "th" ? "PIN ปัจจุบันไม่ถูกต้อง หรือ PIN ใหม่ซ้ำกับคนอื่น" : "Current PIN incorrect or new PIN already in use");
+    }
+  };
+
+  const closePinModal = () => {
+    setShowPinModal(false);
+    setCurrentPin("");
+    setNewPin("");
+    setConfirmPin("");
+    setPinError("");
+    setPinSuccess(false);
+  };
+
+  useEffect(() => {
+    const stored = localStorage.getItem("loggedInTherapist");
+    if (stored) setTherapist(JSON.parse(stored));
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!therapist) return;
@@ -116,14 +167,16 @@ export default function AttendancePage() {
     });
   };
 
-  if (!therapist) {
+  if (!mounted || !therapist) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Card>
-          <p className="text-white/50 text-center py-8">
-            {locale === "th" ? "กรุณาเข้าสู่ระบบก่อน" : "Please login first"}
-          </p>
-        </Card>
+        {mounted && (
+          <Card>
+            <p className="text-white/50 text-center py-8">
+              {locale === "th" ? "กรุณาเข้าสู่ระบบก่อน" : "Please login first"}
+            </p>
+          </Card>
+        )}
       </div>
     );
   }
@@ -133,14 +186,21 @@ export default function AttendancePage() {
 
   return (
     <div>
-      <h1 className="font-heading text-2xl text-white mb-6">{t("attendance.checkin")}</h1>
+      <h1 className="font-heading text-xl md:text-2xl text-white mb-4 md:mb-6">{t("attendance.checkin")}</h1>
 
       {/* Profile Card */}
       <Card className="mb-6">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent-gold to-accent-gold-dark flex items-center justify-center text-primary-dark font-bold text-2xl shrink-0">
+          <button
+            onClick={() => setShowPinModal(true)}
+            className="w-16 h-16 rounded-full bg-gradient-to-br from-accent-gold to-accent-gold-dark flex items-center justify-center text-primary-dark font-bold text-2xl shrink-0 cursor-pointer hover:ring-2 hover:ring-accent-gold/50 transition-all relative group"
+            title={locale === "th" ? "เปลี่ยน PIN" : "Change PIN"}
+          >
             {therapist.name.th.charAt(0)}
-          </div>
+            <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-surface-card rounded-full flex items-center justify-center text-[10px] border border-white/20 group-hover:bg-accent-gold/20">
+              🔑
+            </span>
+          </button>
           <div>
             <h2 className="text-white text-xl font-medium">{displayName}</h2>
             <div className="flex items-center gap-2 mt-1">
@@ -155,6 +215,87 @@ export default function AttendancePage() {
           </div>
         </div>
       </Card>
+
+      {/* Change PIN Modal */}
+      {showPinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={closePinModal}>
+          <div className="bg-surface-card border border-white/10 rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-white font-heading text-lg mb-4 text-center">
+              {locale === "th" ? "เปลี่ยน PIN" : "Change PIN"}
+            </h3>
+            {pinSuccess ? (
+              <div className="text-center py-6">
+                <p className="text-green-400 text-lg font-medium">
+                  {locale === "th" ? "เปลี่ยน PIN สำเร็จ!" : "PIN changed!"}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-white/50 text-xs mb-1 block">
+                    {locale === "th" ? "PIN ปัจจุบัน" : "Current PIN"}
+                  </label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={currentPin}
+                    onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    className="w-full bg-surface-dark border border-white/10 rounded-lg px-4 py-3 text-white text-center text-xl tracking-[0.5em] font-mono"
+                    placeholder="••••"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="text-white/50 text-xs mb-1 block">
+                    {locale === "th" ? "PIN ใหม่" : "New PIN"}
+                  </label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={newPin}
+                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    className="w-full bg-surface-dark border border-white/10 rounded-lg px-4 py-3 text-white text-center text-xl tracking-[0.5em] font-mono"
+                    placeholder="••••"
+                  />
+                </div>
+                <div>
+                  <label className="text-white/50 text-xs mb-1 block">
+                    {locale === "th" ? "ยืนยัน PIN ใหม่" : "Confirm New PIN"}
+                  </label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={confirmPin}
+                    onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    className="w-full bg-surface-dark border border-white/10 rounded-lg px-4 py-3 text-white text-center text-xl tracking-[0.5em] font-mono"
+                    placeholder="••••"
+                  />
+                </div>
+                {pinError && (
+                  <p className="text-red-400 text-xs text-center">{pinError}</p>
+                )}
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={handleChangePin}
+                    className="flex-1 px-4 py-2.5 rounded-lg bg-accent-gold text-primary-dark font-medium text-sm hover:bg-accent-gold-dark transition-all cursor-pointer"
+                  >
+                    {locale === "th" ? "ยืนยัน" : "Confirm"}
+                  </button>
+                  <button
+                    onClick={closePinModal}
+                    className="flex-1 px-4 py-2.5 rounded-lg bg-white/10 text-white/60 text-sm hover:bg-white/20 transition-all cursor-pointer"
+                  >
+                    {locale === "th" ? "ยกเลิก" : "Cancel"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Clock Display */}
       <Card className="mb-6">

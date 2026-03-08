@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PinInput } from "@/components/auth/PinInput";
 import { api } from "@/lib/api";
+import { transformTherapist } from "@/lib/transform";
 
 export default function LoginPage() {
   const t = useTranslations();
@@ -14,35 +15,45 @@ export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<"staff" | "owner">("staff");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
   const handlePinComplete = async (pin: string) => {
+    setError(null);
+    setIsLoading(true);
     try {
       const result = await api.pinLogin(pin);
-      if (result?.therapist) {
-        localStorage.setItem("loggedInTherapist", JSON.stringify(result.therapist));
+      if (result?.access_token) {
+        localStorage.setItem("authToken", result.access_token as string);
       }
+      if (result?.user) {
+        const therapist = transformTherapist(result.user as Record<string, unknown>);
+        localStorage.setItem("loggedInTherapist", JSON.stringify(therapist));
+      }
+      router.push("/staff/dashboard");
     } catch {
-      // API unavailable — match PIN to mock therapist
-      const mockPins: Record<string, number> = { "1234": 1, "5678": 2, "9012": 3, "3456": 4, "1111": 5, "2222": 6, "3333": 7 };
-      const therapistId = mockPins[pin];
-      if (therapistId) {
-        const { therapists } = await import("@/data/therapists");
-        const therapist = therapists.find((t) => t.id === therapistId);
-        if (therapist) {
-          localStorage.setItem("loggedInTherapist", JSON.stringify(therapist));
-        }
-      }
+      setError(t("auth.invalidPin"));
+      setIsLoading(false);
     }
-    router.push("/staff/dashboard");
   };
 
   const handleOwnerLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setIsLoading(true);
     try {
-      await api.ownerLogin(username, password);
+      const result = await api.ownerLogin(username, password);
+      if (result?.access_token) {
+        localStorage.setItem("authToken", result.access_token as string);
+      }
+      if (result?.user) {
+        localStorage.setItem("ownerUser", JSON.stringify(result.user));
+      }
+      router.push("/owner/dashboard");
     } catch {
-      // API unavailable — proceed with mock flow
+      setError(t("auth.invalidCredentials"));
+      setIsLoading(false);
     }
-    router.push("/owner/dashboard");
   };
 
   return (
@@ -77,11 +88,18 @@ export default function LoginPage() {
           </button>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm text-center">
+            {error}
+          </div>
+        )}
+
         {/* Staff PIN Login */}
         {activeTab === "staff" && (
           <Card className="text-center">
             <h2 className="text-white text-lg mb-6">{t("auth.enterPin")}</h2>
-            <PinInput onComplete={handlePinComplete} />
+            <PinInput onComplete={handlePinComplete} disabled={isLoading} />
           </Card>
         )}
 
@@ -111,8 +129,8 @@ export default function LoginPage() {
                   className="w-full bg-surface-dark border border-white/10 rounded-lg px-4 py-3 text-white focus:border-accent-gold focus:outline-none transition-colors"
                 />
               </div>
-              <Button type="submit" size="lg" className="w-full mt-2">
-                {t("common.login")}
+              <Button type="submit" size="lg" className="w-full mt-2" disabled={isLoading || !username || !password}>
+                {isLoading ? "..." : t("common.login")}
               </Button>
             </form>
           </Card>

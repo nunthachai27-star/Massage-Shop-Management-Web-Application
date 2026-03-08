@@ -1,4 +1,4 @@
-export type BookingStatus = "booked" | "checked_in" | "in_service" | "completed" | "checkout";
+export type BookingStatus = "booked" | "checked_in" | "in_service" | "completed" | "checkout" | "cancelled";
 
 export interface Booking {
   id: number;

@@ -31,6 +31,46 @@ export class AuthService {
     return { access_token: token, user: therapist };
   }
 
+  async changePin(therapistId: number, currentPin: string, newPin: string) {
+    if (!newPin || newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+      throw new UnauthorizedException("PIN must be exactly 4 digits");
+    }
+
+    // Verify current PIN
+    const { data: therapist } = await this.supabase.getClient()
+      .from("therapists")
+      .select("id, pin")
+      .eq("id", therapistId)
+      .eq("is_active", true)
+      .single();
+
+    if (!therapist || therapist.pin !== currentPin) {
+      throw new UnauthorizedException("Current PIN is incorrect");
+    }
+
+    // Check new PIN not already used by another therapist
+    const { data: existing } = await this.supabase.getClient()
+      .from("therapists")
+      .select("id")
+      .eq("pin", newPin)
+      .eq("is_active", true)
+      .neq("id", therapistId)
+      .single();
+
+    if (existing) {
+      throw new UnauthorizedException("This PIN is already in use");
+    }
+
+    // Update PIN
+    const { error } = await this.supabase.getClient()
+      .from("therapists")
+      .update({ pin: newPin })
+      .eq("id", therapistId);
+
+    if (error) throw error;
+    return { message: "PIN changed successfully" };
+  }
+
   async ownerLogin(username: string, password: string) {
     const { data: staff } = await this.supabase.getClient()
       .from("staff")

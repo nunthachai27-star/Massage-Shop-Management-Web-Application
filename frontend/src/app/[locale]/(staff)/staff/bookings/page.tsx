@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -13,17 +13,24 @@ import { customers as mockCustomers, createCustomer, type Customer } from "@/dat
 import { api } from "@/lib/api";
 import { transformBooking, transformService, transformTherapist, transformBed } from "@/lib/transform";
 
-const statusConfig: Record<string, { label: { th: string; en: string }; variant: "blue" | "gold" | "green" | "gray" }> = {
+const statusConfig: Record<string, { label: { th: string; en: string }; variant: "blue" | "gold" | "green" | "gray" | "red" }> = {
   booked: { label: { th: "จองแล้ว", en: "Booked" }, variant: "blue" },
   checked_in: { label: { th: "เช็คอินแล้ว", en: "Checked In" }, variant: "gold" },
   in_service: { label: { th: "กำลังให้บริการ", en: "In Service" }, variant: "green" },
   completed: { label: { th: "เสร็จแล้ว", en: "Completed" }, variant: "gray" },
   checkout: { label: { th: "เช็คเอาท์แล้ว", en: "Checked Out" }, variant: "gray" },
+  cancelled: { label: { th: "ยกเลิกแล้ว", en: "Cancelled" }, variant: "red" },
 };
 
-const timeSlots = [
-  "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00",
-];
+// Generate time slots from 10:30 to 22:00 every 30 minutes
+const timeSlots: string[] = [];
+for (let h = 10; h <= 22; h++) {
+  for (const m of [0, 30]) {
+    if (h === 10 && m === 0) continue; // start at 10:30
+    if (h === 22 && m === 30) continue; // end at 22:00
+    timeSlots.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
+  }
+}
 
 function LoyaltyBadge({ visitCount, locale }: { visitCount: number; locale: string }) {
   const current = visitCount % 5;
@@ -99,10 +106,13 @@ export default function StaffBookingsPage() {
 
   // Customer selection state
   const [customerSearch, setCustomerSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<Customer[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isNewCustomer, setIsNewCustomer] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Booking form state (no room - room is selected at check-in)
   const [serviceId, setServiceId] = useState(0);
@@ -124,13 +134,52 @@ export default function StaffBookingsPage() {
     }).catch(() => {});
   }, []);
 
-  const searchResults = useMemo(() => {
-    if (!customerSearch.trim()) return [];
-    const q = customerSearch.toLowerCase();
+  const localSearch = useCallback((query: string) => {
+    const q = query.toLowerCase();
     return customerList.filter(
       (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q) || c.phone.includes(q)
     );
-  }, [customerSearch, customerList]);
+  }, [customerList]);
+
+  const doSearch = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      const data = await api.getCustomers(query);
+      const apiResults = data.map((r: Record<string, unknown>) => ({
+        id: r.id as number,
+        code: (r.customer_code || r.code || "") as string,
+        name: (r.name || "") as string,
+        phone: (r.phone || "") as string,
+        visitCount: (r.visit_count ?? r.visitCount ?? 0) as number,
+        createdAt: (r.created_at || r.createdAt || "") as string,
+      }));
+      // Merge with local results (avoid duplicates by id)
+      const localResults = localSearch(query);
+      const apiIds = new Set(apiResults.map((r: Customer) => r.id));
+      const merged = [...apiResults, ...localResults.filter(c => !apiIds.has(c.id))];
+      setSearchResults(merged);
+    } catch {
+      setSearchResults(localSearch(query));
+    }
+    setSearchLoading(false);
+  }, [localSearch]);
+
+  const handleSearchChange = (value: string) => {
+    setCustomerSearch(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!value.trim()) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    debounceRef.current = setTimeout(() => doSearch(value), 300);
+  };
 
   const resetForm = () => {
     setCustomerSearch("");
@@ -301,13 +350,33 @@ export default function StaffBookingsPage() {
     api.updateBookingStatus(bookingId, "checkout").catch(() => {});
   };
 
+  // Cancel booking
+  const handleCancel = (bookingId: number) => {
+    const booking = bookings.find((b) => b.id === bookingId);
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.id === bookingId ? { ...b, status: "cancelled" as Booking["status"] } : b
+      )
+    );
+    if (booking?.bedId) {
+      setBeds((prev) =>
+        prev.map((bed) =>
+          bed.id === booking.bedId
+            ? { ...bed, status: "available" as const, currentBookingId: undefined }
+            : bed
+        )
+      );
+    }
+    api.updateBookingStatus(bookingId, "cancelled").catch(() => {});
+  };
+
   const hasCustomer = selectedCustomer || (isNewCustomer && newCustomerName);
   const isFormValid = hasCustomer && serviceId && therapistId && startTime;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="font-heading text-2xl text-white">{t("staff.bookings")}</h1>
+      <div className="flex items-center justify-between mb-4 md:mb-6">
+        <h1 className="font-heading text-xl md:text-2xl text-white">{t("staff.bookings")}</h1>
         <Button
           variant={showForm ? "danger" : "primary"}
           size="sm"
@@ -337,14 +406,18 @@ export default function StaffBookingsPage() {
                   <input
                     type="text"
                     value={customerSearch}
-                    onChange={(e) => setCustomerSearch(e.target.value)}
-                    placeholder={locale === "th" ? "ค้นหาชื่อ, รหัส, หรือเบอร์โทร..." : "Search name, code, or phone..."}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    placeholder={locale === "th" ? "พิมพ์ชื่อ, รหัส, หรือเบอร์โทร..." : "Type name, code, or phone..."}
                     className="w-full bg-surface-dark border border-white/10 rounded-lg px-4 py-3 text-white focus:border-accent-gold focus:outline-none"
                   />
 
                   {customerSearch.trim() && (
                     <div className="mt-2 space-y-1">
-                      {searchResults.length > 0 ? (
+                      {searchLoading ? (
+                        <p className="text-white/30 text-sm py-2 px-1 text-center">
+                          {locale === "th" ? "กำลังค้นหา..." : "Searching..."}
+                        </p>
+                      ) : searchResults.length > 0 ? (
                         searchResults.map((c) => (
                           <button
                             key={c.id}
@@ -461,27 +534,71 @@ export default function StaffBookingsPage() {
               )}
             </div>
 
-            {/* Service Selection */}
+            {/* Service Selection — 2-step: type → duration */}
             <div>
               <label className="block text-white/50 text-sm mb-2">
                 {locale === "th" ? "เลือกบริการ" : "Service"}
               </label>
-              <div className="grid grid-cols-2 gap-2">
-                {services.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setServiceId(s.id)}
-                    className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
-                      serviceId === s.id
-                        ? "border-accent-gold bg-accent-gold/10 text-accent-gold"
-                        : "border-white/10 text-white/70 hover:border-white/30"
-                    }`}
-                  >
-                    <p className="font-medium text-sm">{locale === "th" ? s.name.th : s.name.en}</p>
-                    <p className="text-xs mt-1 opacity-60">{s.price} {locale === "th" ? "บาท" : "THB"} / {s.duration} {locale === "th" ? "นาที" : "min"}</p>
-                  </button>
-                ))}
+
+              {/* Step 1: Type */}
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                {[
+                  { key: "thai", label: { th: "นวดไทย", en: "Thai" }, icon: "🤲" },
+                  { key: "aroma", label: { th: "อโรม่า", en: "Aroma" }, icon: "🌿" },
+                ].map((type) => {
+                  const typeServices = services.filter((s) => (s.category || (s.id <= 3 ? "thai" : "aroma")) === type.key);
+                  const isSelected = typeServices.some((s) => s.id === serviceId);
+                  return (
+                    <button
+                      key={type.key}
+                      onClick={() => {
+                        // Select first service of this type if none selected in this category
+                        if (!isSelected) setServiceId(typeServices[0]?.id || 0);
+                      }}
+                      className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
+                        isSelected
+                          ? "border-accent-gold bg-accent-gold/10 text-accent-gold"
+                          : "border-white/10 text-white/70 hover:border-white/30"
+                      }`}
+                    >
+                      <span className="text-2xl block mb-1">{type.icon}</span>
+                      <p className="font-medium text-sm">{locale === "th" ? type.label.th : type.label.en}</p>
+                    </button>
+                  );
+                })}
               </div>
+
+              {/* Step 2: Duration — show only when a type is selected */}
+              {serviceId > 0 && (() => {
+                const selectedService = services.find((s) => s.id === serviceId);
+                const selectedCategory = selectedService?.category || (serviceId <= 3 ? "thai" : "aroma");
+                const categoryServices = services.filter((s) => (s.category || (s.id <= 3 ? "thai" : "aroma")) === selectedCategory);
+                return (
+                  <div className="grid grid-cols-3 gap-2">
+                    {categoryServices.map((s) => {
+                      const hrs = s.duration / 60;
+                      const durationLabel = hrs === 1 ? "1" : hrs === 1.5 ? "1.5" : "2";
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={() => setServiceId(s.id)}
+                          className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
+                            serviceId === s.id
+                              ? "border-accent-gold bg-accent-gold/15 text-accent-gold ring-1 ring-accent-gold/30"
+                              : "border-white/10 text-white/70 hover:border-white/30"
+                          }`}
+                        >
+                          <p className="text-lg font-bold">{durationLabel}</p>
+                          <p className="text-[10px] text-white/40 mb-1">{locale === "th" ? "ชั่วโมง" : "hour"}</p>
+                          <p className={`text-sm font-semibold ${serviceId === s.id ? "text-accent-gold" : "text-white/60"}`}>
+                            {s.price}฿
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Therapist Selection */}
@@ -511,20 +628,25 @@ export default function StaffBookingsPage() {
               <label className="block text-white/50 text-sm mb-2">
                 {locale === "th" ? "เลือกเวลา" : "Time"}
               </label>
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                {timeSlots.map((slot) => (
-                  <button
-                    key={slot}
-                    onClick={() => setStartTime(slot)}
-                    className={`py-2 px-3 rounded-lg border text-center text-sm transition-all cursor-pointer ${
-                      startTime === slot
-                        ? "border-accent-gold bg-accent-gold/10 text-accent-gold"
-                        : "border-white/10 text-white/70 hover:border-white/30"
-                    }`}
-                  >
-                    {slot}
-                  </button>
-                ))}
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+                {timeSlots.map((slot) => {
+                  const isHour = slot.endsWith(":00");
+                  return (
+                    <button
+                      key={slot}
+                      onClick={() => setStartTime(slot)}
+                      className={`py-2 px-1 rounded-lg border text-center transition-all cursor-pointer ${
+                        startTime === slot
+                          ? "border-accent-gold bg-accent-gold/10 text-accent-gold ring-1 ring-accent-gold/30"
+                          : isHour
+                            ? "border-white/15 text-white/70 hover:border-white/30 bg-surface-dark/30"
+                            : "border-white/10 text-white/50 hover:border-white/30"
+                      }`}
+                    >
+                      <span className={`${isHour ? "text-sm font-semibold" : "text-xs"}`}>{slot}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -553,9 +675,35 @@ export default function StaffBookingsPage() {
         </Card>
       )}
 
-      {/* Booking List */}
+      {/* Booking List — today only */}
       <div className="space-y-4">
-        {bookings.map((booking) => {
+        {[...bookings]
+          .filter((b) => {
+            const today = new Date();
+            const bookingDate = new Date(b.startTime);
+            return (
+              bookingDate.getFullYear() === today.getFullYear() &&
+              bookingDate.getMonth() === today.getMonth() &&
+              bookingDate.getDate() === today.getDate()
+            );
+          })
+          .sort((a, b) => {
+            // Active statuses first, completed/checkout last
+            const statusOrder: Record<string, number> = {
+              in_service: 0,
+              checked_in: 1,
+              booked: 2,
+              completed: 3,
+              checkout: 4,
+              cancelled: 5,
+            };
+            const orderA = statusOrder[a.status] ?? 2;
+            const orderB = statusOrder[b.status] ?? 2;
+            if (orderA !== orderB) return orderA - orderB;
+            // Within same status group, newest first
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          })
+          .map((booking) => {
           const config = statusConfig[booking.status] || statusConfig.booked;
           const service = services.find((s) => s.id === booking.serviceId);
           const therapist = therapists.find((th) => th.id === booking.therapistId);
@@ -579,7 +727,7 @@ export default function StaffBookingsPage() {
                       <LoyaltyBadge visitCount={customer.visitCount} locale={locale} />
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 text-sm">
                     {service && (
                       <div>
                         <span className="text-white/50">{locale === "th" ? "บริการ: " : "Service: "}</span>
@@ -614,11 +762,19 @@ export default function StaffBookingsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex-shrink-0">
+                <div className="flex-shrink-0 flex flex-col gap-1.5">
                   {booking.status === "booked" && !isCheckinOpen && (
-                    <Button size="sm" variant="outline" onClick={() => handleCheckin(booking.id)}>
-                      {t("staff.checkin")}
-                    </Button>
+                    <>
+                      <Button size="sm" variant="outline" onClick={() => handleCheckin(booking.id)}>
+                        {t("staff.checkin")}
+                      </Button>
+                      <button
+                        onClick={() => handleCancel(booking.id)}
+                        className="px-3 py-1 rounded-lg text-xs bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-all cursor-pointer"
+                      >
+                        {locale === "th" ? "ยกเลิก" : "Cancel"}
+                      </button>
+                    </>
                   )}
                   {booking.status === "in_service" && (
                     <Button size="sm" variant="primary" onClick={() => handleEndService(booking.id)}>
@@ -639,7 +795,7 @@ export default function StaffBookingsPage() {
                   <p className="text-white/50 text-sm mb-3">
                     {locale === "th" ? "เลือกห้องแล้วกดเริ่มบริการ" : "Select a room and start service"}
                   </p>
-                  <div className="grid grid-cols-4 gap-2 mb-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
                     {beds.map((bed) => {
                       const isAvailable = bed.status === "available";
                       return (

@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from "@nestjs/common";
+import { Controller, Post, Patch, Body } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { AuthService } from "./auth.service";
 import { PinLoginDto } from "./dto/pin-login.dto";
@@ -17,5 +17,10 @@ export class AuthController {
   @Post("owner-login")
   ownerLogin(@Body() dto: OwnerLoginDto) {
     return this.authService.ownerLogin(dto.username, dto.password);
+  }
+
+  @Patch("change-pin")
+  changePin(@Body() body: { therapist_id: number; current_pin: string; new_pin: string }) {
+    return this.authService.changePin(body.therapist_id, body.current_pin, body.new_pin);
   }
 }

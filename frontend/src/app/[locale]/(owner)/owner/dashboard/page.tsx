@@ -5,14 +5,27 @@ import { bookings as mockBookings, type Booking } from "@/data/bookings";
 import { api } from "@/lib/api";
 import { transformBooking } from "@/lib/transform";
 
-const metrics = [
-  { labelKey: "owner.totalCustomers", value: "12", icon: "👥" },
-  { labelKey: "owner.dailyRevenue", value: "8,400", suffix: " ฿", icon: "💰" },
-  { labelKey: "owner.bedUtilization", value: "75", suffix: "%", icon: "🚪" },
-];
-
 export default async function OwnerDashboardPage() {
   const t = await getTranslations();
+
+  // Fetch real metrics from API
+  let totalCustomers = 0;
+  let dailyRevenue = 0;
+  let bedUtilization = 0;
+  try {
+    const metrics = await api.getDailyMetrics();
+    totalCustomers = (metrics.totalCustomers as number) || 0;
+    dailyRevenue = (metrics.dailyRevenue as number) || 0;
+    bedUtilization = (metrics.bedUtilization as number) || 0;
+  } catch {
+    // API unavailable — show zeros
+  }
+
+  const metricCards = [
+    { labelKey: "owner.totalCustomers", value: String(totalCustomers), icon: "👥" },
+    { labelKey: "owner.dailyRevenue", value: dailyRevenue.toLocaleString(), suffix: " ฿", icon: "💰" },
+    { labelKey: "owner.bedUtilization", value: String(bedUtilization), suffix: "%", icon: "🚪" },
+  ];
 
   let bookings: Booking[];
   try {
@@ -36,7 +49,7 @@ export default async function OwnerDashboardPage() {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        {metrics.map((metric) => (
+        {metricCards.map((metric) => (
           <Card key={metric.labelKey}>
             <div className="flex items-center gap-3">
               <span className="text-3xl">{metric.icon}</span>

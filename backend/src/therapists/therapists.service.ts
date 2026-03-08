@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service";
 import { CreateTherapistDto } from "./dto/create-therapist.dto";
 import { UpdateTherapistDto } from "./dto/update-therapist.dto";
@@ -7,11 +7,13 @@ import { UpdateTherapistDto } from "./dto/update-therapist.dto";
 export class TherapistsService {
   constructor(private supabase: SupabaseService) {}
 
+  private readonly publicColumns = "id, name_th, name_en, skills, rating, status, image, experience, is_active, created_at";
+
   async findAll(status?: string) {
     let query = this.supabase
       .getClient()
       .from("therapists")
-      .select("*")
+      .select(this.publicColumns)
       .eq("is_active", true)
       .order("id");
     if (status) query = query.eq("status", status);
@@ -20,18 +22,52 @@ export class TherapistsService {
     return data;
   }
 
+  async findAllIncludingInactive() {
+    const { data, error } = await this.supabase
+      .getClient()
+      .from("therapists")
+      .select(this.publicColumns)
+      .order("id");
+    if (error) throw error;
+    return data;
+  }
+
+  async reactivate(id: number) {
+    const { data, error } = await this.supabase
+      .getClient()
+      .from("therapists")
+      .update({ is_active: true, status: "offline" })
+      .eq("id", id)
+      .select(this.publicColumns)
+      .single();
+    if (error || !data) throw new NotFoundException("Therapist not found");
+    return data;
+  }
+
   async findOne(id: number) {
     const { data, error } = await this.supabase
       .getClient()
       .from("therapists")
-      .select("*")
+      .select(this.publicColumns)
       .eq("id", id)
       .single();
     if (error || !data) throw new NotFoundException("Therapist not found");
     return data;
   }
 
+  private async checkPinUnique(pin: string, excludeId?: number) {
+    if (!pin) return;
+    const { data } = await this.supabase
+      .getClient()
+      .from("therapists")
+      .select("id")
+      .eq("pin", pin);
+    const conflict = data?.find((t: { id: number }) => t.id !== excludeId);
+    if (conflict) throw new BadRequestException("PIN is already in use");
+  }
+
   async create(dto: CreateTherapistDto) {
+    if (dto.pin) await this.checkPinUnique(dto.pin);
     const { data, error } = await this.supabase
       .getClient()
       .from("therapists")
@@ -43,12 +79,13 @@ export class TherapistsService {
   }
 
   async update(id: number, dto: UpdateTherapistDto) {
+    if (dto.pin) await this.checkPinUnique(dto.pin, id);
     const { data, error } = await this.supabase
       .getClient()
       .from("therapists")
       .update(dto)
       .eq("id", id)
-      .select()
+      .select(this.publicColumns)
       .single();
     if (error || !data) throw new NotFoundException("Therapist not found");
     return data;
@@ -60,7 +97,7 @@ export class TherapistsService {
       .from("therapists")
       .update({ status })
       .eq("id", id)
-      .select()
+      .select(this.publicColumns)
       .single();
     if (error || !data) throw new NotFoundException("Therapist not found");
     return data;

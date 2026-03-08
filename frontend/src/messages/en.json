@@ -54,14 +54,15 @@
   },
   "staff": {
     "dashboard": "Staff Dashboard",
-    "beds": "Room Status",
+    "beds": "Work Rooms",
     "bookings": "Bookings",
-    "session": "Session Control",
+    "session": "Work",
     "checkin": "Check-in Customer",
     "checkout": "Checkout",
     "startService": "Start Service",
     "endService": "End Service",
-    "customers": "Customer Loyalty"
+    "customers": "Customer Loyalty",
+    "settings": "Settings"
   },
   "owner": {
     "dashboard": "Owner Dashboard",
@@ -71,14 +72,40 @@
     "bedUtilization": "Room Utilization",
     "therapistPerformance": "Therapist Performance",
     "sessions": "Sessions",
-    "revenuePerTherapist": "Revenue per Therapist"
+    "revenuePerTherapist": "Revenue per Therapist",
+    "commissions": "Commission Pay",
+    "commissionTitle": "Daily Commission Payment",
+    "totalCommission": "Total Commission",
+    "paid": "Paid",
+    "pending": "Pending",
+    "markPaid": "Mark Paid",
+    "markUnpaid": "Undo",
+    "allPaid": "All Paid",
+    "noData": "No commission data",
+    "manageTherapists": "Manage Therapists",
+    "addTherapist": "Add Therapist",
+    "editTherapist": "Edit",
+    "nameTh": "Name (Thai)",
+    "nameEn": "Name (English)",
+    "pin": "PIN",
+    "experience": "Experience (yrs)",
+    "skills": "Skills",
+    "active": "Active",
+    "resigned": "Resigned",
+    "deactivate": "Deactivate (Resigned)",
+    "reactivate": "Reactivate",
+    "save": "Save",
+    "totalActive": "Active",
+    "totalResigned": "Resigned"
   },
   "auth": {
     "staffLogin": "Staff Login",
     "ownerLogin": "Owner Login",
     "enterPin": "Enter PIN",
     "username": "Username",
-    "password": "Password"
+    "password": "Password",
+    "invalidPin": "Invalid PIN",
+    "invalidCredentials": "Invalid username or password"
   },
   "attendance": {
     "checkin": "Check In",

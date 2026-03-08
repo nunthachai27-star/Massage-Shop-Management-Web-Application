@@ -54,14 +54,15 @@
   },
   "staff": {
     "dashboard": "แดชบอร์ดพนักงาน",
-    "beds": "สถานะห้อง",
+    "beds": "ห้องทำงาน",
     "bookings": "รายการจอง",
-    "session": "ควบคุม Session",
+    "session": "ทำงาน",
     "checkin": "เช็คอินลูกค้า",
     "checkout": "เช็คเอาท์",
     "startService": "เริ่มบริการ",
     "endService": "จบบริการ",
-    "customers": "ลูกค้าสะสมแต้ม"
+    "customers": "ลูกค้าสะสมแต้ม",
+    "settings": "ตั้งค่า"
   },
   "owner": {
     "dashboard": "แดชบอร์ดเจ้าของร้าน",
@@ -71,14 +72,40 @@
     "bedUtilization": "อัตราใช้ห้อง",
     "therapistPerformance": "ผลงานหมอนวด",
     "sessions": "จำนวนรอบ",
-    "revenuePerTherapist": "รายได้ต่อคน"
+    "revenuePerTherapist": "รายได้ต่อคน",
+    "commissions": "จ่ายค่าคอม",
+    "commissionTitle": "สถานะจ่ายค่าคอมมิชชั่นรายวัน",
+    "totalCommission": "ค่าคอมรวม",
+    "paid": "จ่ายแล้ว",
+    "pending": "ยังไม่จ่าย",
+    "markPaid": "จ่ายแล้ว",
+    "markUnpaid": "ยกเลิก",
+    "allPaid": "จ่ายครบแล้ว",
+    "noData": "ไม่มีข้อมูลค่าคอม",
+    "manageTherapists": "จัดการหมอนวด",
+    "addTherapist": "เพิ่มหมอใหม่",
+    "editTherapist": "แก้ไขข้อมูล",
+    "nameTh": "ชื่อ (ไทย)",
+    "nameEn": "ชื่อ (อังกฤษ)",
+    "pin": "PIN",
+    "experience": "ประสบการณ์ (ปี)",
+    "skills": "ทักษะ",
+    "active": "ทำงานอยู่",
+    "resigned": "ลาออก",
+    "deactivate": "ปิดสถานะ (ลาออก)",
+    "reactivate": "เปิดสถานะกลับ",
+    "save": "บันทึก",
+    "totalActive": "ทำงานอยู่",
+    "totalResigned": "ลาออก"
   },
   "auth": {
     "staffLogin": "เข้าสู่ระบบพนักงาน",
     "ownerLogin": "เข้าสู่ระบบเจ้าของร้าน",
     "enterPin": "กรอก PIN",
     "username": "ชื่อผู้ใช้",
-    "password": "รหัสผ่าน"
+    "password": "รหัสผ่าน",
+    "invalidPin": "PIN ไม่ถูกต้อง",
+    "invalidCredentials": "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
   },
   "attendance": {
     "checkin": "ลงเวลาเข้างาน",
