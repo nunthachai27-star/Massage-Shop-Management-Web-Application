@@ -254,8 +254,19 @@ export default function StaffSessionPage() {
         </div>
       </div>
 
+      {/* Commission - Large Display */}
+      <Card className="text-center !py-5 mb-4 md:mb-6 border border-emerald-500/20 bg-emerald-500/5">
+        <p className="text-white/50 text-sm mb-1">{locale === "th" ? "ค่าคอมมิชชั่นวันนี้" : "Today's Commission"}</p>
+        <p className="text-4xl md:text-5xl font-bold text-emerald-400 font-mono">
+          ฿{totalCommission.toLocaleString()}
+        </p>
+        <p className="text-white/30 text-xs mt-2">
+          {commissionBookings.length} {locale === "th" ? "รายการ" : "session(s)"}
+        </p>
+      </Card>
+
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-2 md:gap-3 mb-4 md:mb-6">
+      <div className="grid grid-cols-3 gap-2 md:gap-3 mb-4 md:mb-6">
         <Card className="text-center !py-3">
           <p className="text-2xl font-bold text-blue-400">
             {myBookings.filter((b) => b.status === "booked").length}
@@ -273,12 +284,6 @@ export default function StaffSessionPage() {
             {myBookings.filter((b) => b.status === "completed").length}
           </p>
           <p className="text-white/40 text-xs mt-1">{locale === "th" ? "เสร็จแล้ว" : "Done"}</p>
-        </Card>
-        <Card className="text-center !py-3">
-          <p className="text-2xl font-bold text-emerald-400">
-            {totalCommission.toLocaleString()}
-          </p>
-          <p className="text-white/40 text-xs mt-1">{locale === "th" ? "ค่าคอม (฿)" : "Comm. (฿)"}</p>
         </Card>
       </div>
 
