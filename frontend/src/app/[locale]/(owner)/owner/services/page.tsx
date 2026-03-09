@@ -90,7 +90,7 @@ export default function ManageServicesPage() {
   };
 
   const handleSubmit = async () => {
-    if (!formNameTh.trim() || !formNameEn.trim() || formDuration <= 0 || formPrice <= 0) return;
+    if (!formNameTh.trim() || !formNameEn.trim() || formDuration <= 0 || formPrice < 0) return;
 
     const payload: Record<string, unknown> = {
       name_th: formNameTh.trim(),
