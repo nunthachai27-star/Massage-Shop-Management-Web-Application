@@ -1,4 +1,5 @@
 import { useTranslations } from "next-intl";
+import { APP_VERSION } from "@/lib/version";
 
 export function Footer() {
   const t = useTranslations("common");
@@ -10,6 +11,7 @@ export function Footer() {
           {t("appName")}
         </p>
         <p>&copy; 2026 {t("appName")}. All rights reserved.</p>
+        <p className="mt-1 text-white/30 text-xs">v{APP_VERSION}</p>
       </div>
     </footer>
   );

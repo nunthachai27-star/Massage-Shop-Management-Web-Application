@@ -3,6 +3,7 @@
 import { useTranslations, useLocale } from "next-intl";
 import { Link, usePathname } from "@/i18n/routing";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { APP_VERSION } from "@/lib/version";
 
 const navItems = [
   { href: "/staff/dashboard", labelKey: "staff.beds", shortLabel: { th: "ห้อง", en: "Rooms" }, icon: "🚪" },
@@ -51,6 +52,7 @@ export function StaffSidebar() {
           >
             {t("common.logout")}
           </Link>
+          <p className="text-white/20 text-xs text-center">v{APP_VERSION}</p>
         </div>
       </aside>
 

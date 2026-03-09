@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { PinInput } from "@/components/auth/PinInput";
 import { api } from "@/lib/api";
 import { transformTherapist } from "@/lib/transform";
+import { APP_VERSION } from "@/lib/version";
 
 export default function LoginPage() {
   const t = useTranslations();
@@ -91,6 +92,8 @@ export default function LoginPage() {
           <h2 className="text-white text-lg mb-6">{t("auth.enterPin")}</h2>
           <PinInput key={pinKey} onComplete={handlePinComplete} disabled={isLoading} />
         </Card>
+
+        <p className="text-white/20 text-xs text-center mt-6">v{APP_VERSION}</p>
       </div>
     </div>
   );

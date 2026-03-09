@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/routing";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { APP_VERSION } from "@/lib/version";
 
 const navItems = [
   { href: "/owner/dashboard", labelKey: "owner.dashboard", icon: "📊" },
@@ -49,6 +50,7 @@ export function OwnerSidebar() {
           >
             {t("common.logout")}
           </Link>
+          <p className="text-white/20 text-xs text-center">v{APP_VERSION}</p>
         </div>
       </aside>
 
