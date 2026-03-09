@@ -102,7 +102,15 @@
     "reactivate": "Reactivate",
     "save": "Save",
     "totalActive": "Active",
-    "totalResigned": "Resigned"
+    "totalResigned": "Resigned",
+    "manageServices": "Services",
+    "addService": "Add Service",
+    "editService": "Edit Service",
+    "serviceName": "Service Name",
+    "duration": "Duration (min)",
+    "price": "Price (THB)",
+    "deleteService": "Delete",
+    "totalServices": "Total Services"
   },
   "auth": {
     "staffLogin": "Staff Login",

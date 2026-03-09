@@ -21,6 +21,12 @@ export const api = {
   // Services
   getServices: () => apiFetch<ApiRecord[]>("/services"),
   getService: (id: number) => apiFetch<ApiRecord>(`/services/${id}`),
+  createService: (data: Record<string, unknown>) =>
+    apiFetch<ApiRecord>("/services", { method: "POST", body: JSON.stringify(data) }),
+  updateService: (id: number, data: Record<string, unknown>) =>
+    apiFetch<ApiRecord>(`/services/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteService: (id: number) =>
+    apiFetch<ApiRecord>(`/services/${id}`, { method: "DELETE" }),
 
   // Therapists
   getTherapists: (status?: string) =>

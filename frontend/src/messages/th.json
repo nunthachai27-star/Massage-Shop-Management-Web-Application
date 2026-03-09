@@ -102,7 +102,15 @@
     "reactivate": "เปิดสถานะกลับ",
     "save": "บันทึก",
     "totalActive": "ทำงานอยู่",
-    "totalResigned": "ลาออก"
+    "totalResigned": "ลาออก",
+    "manageServices": "จัดการบริการ",
+    "addService": "เพิ่มบริการ",
+    "editService": "แก้ไขบริการ",
+    "serviceName": "ชื่อบริการ",
+    "duration": "ระยะเวลา (นาที)",
+    "price": "ราคา (บาท)",
+    "deleteService": "ลบบริการ",
+    "totalServices": "บริการทั้งหมด"
   },
   "auth": {
     "staffLogin": "เข้าสู่ระบบพนักงาน",
