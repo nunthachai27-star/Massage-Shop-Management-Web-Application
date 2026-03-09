@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: massage_shop
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Nunthachai@461463113}
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -25,7 +25,7 @@ services:
     environment:
       - PORT=4000
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/massage_shop
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-Nunthachai@461463113}@db:5432/massage_shop
       - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
     depends_on:
       db:
