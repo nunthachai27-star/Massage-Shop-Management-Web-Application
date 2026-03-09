@@ -39,7 +39,7 @@ export default function LoginPage() {
           const therapist = transformTherapist(result.user as Record<string, unknown>);
           localStorage.setItem("loggedInTherapist", JSON.stringify(therapist));
         }
-        router.push("/staff/dashboard");
+        router.push("/staff/session");
       }
     } catch {
       setError(t("auth.invalidPin"));

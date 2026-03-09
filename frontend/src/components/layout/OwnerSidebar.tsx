@@ -1,21 +1,22 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Link, usePathname } from "@/i18n/routing";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { APP_VERSION } from "@/lib/version";
 
 const navItems = [
-  { href: "/owner/dashboard", labelKey: "owner.dashboard", icon: "📊" },
-  { href: "/owner/therapists", labelKey: "owner.therapistPerformance", icon: "👥" },
-  { href: "/owner/manage-therapists", labelKey: "owner.manageTherapists", icon: "🩺" },
-  { href: "/owner/services", labelKey: "owner.manageServices", icon: "💆" },
-  { href: "/owner/bookings", labelKey: "staff.bookings", icon: "📋" },
+  { href: "/owner/dashboard", labelKey: "owner.dashboard", shortLabel: { th: "แดชบอร์ด", en: "Dashboard" }, icon: "📊" },
+  { href: "/owner/bookings", labelKey: "staff.bookings", shortLabel: { th: "จอง", en: "Book" }, icon: "📋" },
+  { href: "/owner/therapists", labelKey: "owner.therapistPerformance", shortLabel: { th: "ผลงาน", en: "Perform" }, icon: "👥" },
+  { href: "/owner/manage-therapists", labelKey: "owner.manageTherapists", shortLabel: { th: "พนักงาน", en: "Staff" }, icon: "🩺" },
+  { href: "/owner/services", labelKey: "owner.manageServices", shortLabel: { th: "บริการ", en: "Service" }, icon: "💆" },
 ];
 
 export function OwnerSidebar() {
   const t = useTranslations();
   const pathname = usePathname();
+  const locale = useLocale() as "th" | "en";
 
   return (
     <>
@@ -57,20 +58,22 @@ export function OwnerSidebar() {
       </aside>
 
       {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-primary-dark border-t border-accent-gold/20">
-        <div className="flex justify-around py-2">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-primary-dark/95 backdrop-blur-sm border-t border-accent-gold/20">
+        <div className="grid grid-cols-5 py-1 px-0.5">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center gap-1 px-3 py-1 text-xs ${
-                  isActive ? "text-accent-gold" : "text-white/50"
+                className={`flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-lg ${
+                  isActive ? "text-accent-gold bg-accent-gold/10" : "text-white/40"
                 }`}
               >
-                <span className="text-lg">{item.icon}</span>
-                <span>{t(item.labelKey)}</span>
+                <span className="text-lg leading-none">{item.icon}</span>
+                <span className="text-[10px] leading-tight truncate w-full text-center px-0.5">
+                  {item.shortLabel[locale]}
+                </span>
               </Link>
             );
           })}
