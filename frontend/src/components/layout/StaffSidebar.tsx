@@ -7,8 +7,8 @@ import { APP_VERSION } from "@/lib/version";
 
 const navItems = [
   { href: "/staff/dashboard", labelKey: "staff.beds", shortLabel: { th: "ห้อง", en: "Rooms" }, icon: "🚪" },
-  { href: "/staff/bookings", labelKey: "staff.bookings", shortLabel: { th: "จอง", en: "Book" }, icon: "📋" },
   { href: "/staff/session", labelKey: "staff.session", shortLabel: { th: "ทำงาน", en: "Work" }, icon: "⏱️" },
+  { href: "/staff/bookings", labelKey: "staff.bookings", shortLabel: { th: "จอง", en: "Book" }, icon: "📋" },
   { href: "/staff/attendance", labelKey: "attendance.checkin", shortLabel: { th: "เข้างาน", en: "Clock" }, icon: "📍" },
 ];
 

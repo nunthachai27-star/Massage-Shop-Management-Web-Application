@@ -20,13 +20,17 @@ export class DashboardService {
     // Daily revenue (confirmed payments)
     const { data: payments } = await client
       .from("payments")
-      .select("amount, booking_id, bookings!inner(start_time)")
+      .select("amount, method, booking_id, bookings!inner(start_time)")
       .eq("status", "confirmed")
       .gte("bookings.start_time", `${targetDate}T00:00:00`)
       .lte("bookings.start_time", `${targetDate}T23:59:59`);
 
     const dailyRevenue =
       payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+    const dailyCash =
+      payments?.filter((p: any) => p.method === "cash").reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+    const dailyTransfer =
+      payments?.filter((p: any) => p.method === "bank_transfer").reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
 
     // Bed utilization
     const { data: beds } = await client.from("beds").select("status");
@@ -39,7 +43,85 @@ export class DashboardService {
     return {
       totalCustomers: totalCustomers || 0,
       dailyRevenue,
+      dailyCash,
+      dailyTransfer,
       bedUtilization,
+    };
+  }
+
+  async getWeeklyRevenue() {
+    const client = this.supabase.getClient();
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+    const startDate = startOfWeek.toISOString().split("T")[0];
+    const endDate = today.toISOString().split("T")[0];
+
+    const { data: payments } = await client
+      .from("payments")
+      .select("amount, method, booking_id, bookings!inner(start_time)")
+      .eq("status", "confirmed")
+      .gte("bookings.start_time", `${startDate}T00:00:00`)
+      .lte("bookings.start_time", `${endDate}T23:59:59`);
+
+    const weeklyRevenue =
+      payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+    const weeklyCash =
+      payments?.filter((p: any) => p.method === "cash").reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+    const weeklyTransfer =
+      payments?.filter((p: any) => p.method === "bank_transfer").reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+
+    const { count: weeklyCustomers } = await client
+      .from("bookings")
+      .select("*", { count: "exact", head: true })
+      .gte("start_time", `${startDate}T00:00:00`)
+      .lte("start_time", `${endDate}T23:59:59`)
+      .not("status", "eq", "cancelled");
+
+    return {
+      weeklyRevenue,
+      weeklyCash,
+      weeklyTransfer,
+      weeklyCustomers: weeklyCustomers || 0,
+      startDate,
+      endDate,
+    };
+  }
+
+  async getMonthlyRevenue() {
+    const client = this.supabase.getClient();
+    const today = new Date();
+    const startDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+    const endDate = today.toISOString().split("T")[0];
+
+    const { data: payments } = await client
+      .from("payments")
+      .select("amount, method, booking_id, bookings!inner(start_time)")
+      .eq("status", "confirmed")
+      .gte("bookings.start_time", `${startDate}T00:00:00`)
+      .lte("bookings.start_time", `${endDate}T23:59:59`);
+
+    const monthlyRevenue =
+      payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+    const monthlyCash =
+      payments?.filter((p: any) => p.method === "cash").reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+    const monthlyTransfer =
+      payments?.filter((p: any) => p.method === "bank_transfer").reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+
+    const { count: monthlyCustomers } = await client
+      .from("bookings")
+      .select("*", { count: "exact", head: true })
+      .gte("start_time", `${startDate}T00:00:00`)
+      .lte("start_time", `${endDate}T23:59:59`)
+      .not("status", "eq", "cancelled");
+
+    return {
+      monthlyRevenue,
+      monthlyCash,
+      monthlyTransfer,
+      monthlyCustomers: monthlyCustomers || 0,
+      startDate,
+      endDate,
     };
   }
 

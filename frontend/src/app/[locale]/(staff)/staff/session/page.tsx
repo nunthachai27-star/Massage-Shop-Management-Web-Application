@@ -55,6 +55,7 @@ export default function StaffSessionPage() {
   const [showQuickStart, setShowQuickStart] = useState(false);
   const [qsServiceId, setQsServiceId] = useState(0);
   const [qsBedId, setQsBedId] = useState(0);
+  const [qsPaymentMethod, setQsPaymentMethod] = useState<"cash" | "bank_transfer">("cash");
   const [qsLoading, setQsLoading] = useState(false);
 
   useEffect(() => {
@@ -185,6 +186,7 @@ export default function StaffSessionPage() {
       start_time: now2.toISOString(),
       end_time: endTime.toISOString(),
       status: "in_service",
+      payment_method: qsPaymentMethod,
     };
 
     try {
@@ -367,6 +369,39 @@ export default function StaffSessionPage() {
             })}
           </div>
 
+          {/* Payment Method */}
+          <p className="text-white/50 text-sm mb-2">
+            {locale === "th" ? "ประเภทการรับเงิน" : "Payment Method"}
+          </p>
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <button
+              onClick={() => setQsPaymentMethod("cash")}
+              className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
+                qsPaymentMethod === "cash"
+                  ? "border-green-400 bg-green-500/10"
+                  : "border-white/10 hover:border-white/30"
+              }`}
+            >
+              <span className="text-2xl">💵</span>
+              <p className={`text-sm font-medium mt-1 ${qsPaymentMethod === "cash" ? "text-green-400" : "text-white/70"}`}>
+                {locale === "th" ? "เงินสด" : "Cash"}
+              </p>
+            </button>
+            <button
+              onClick={() => setQsPaymentMethod("bank_transfer")}
+              className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
+                qsPaymentMethod === "bank_transfer"
+                  ? "border-blue-400 bg-blue-500/10"
+                  : "border-white/10 hover:border-white/30"
+              }`}
+            >
+              <span className="text-2xl">📱</span>
+              <p className={`text-sm font-medium mt-1 ${qsPaymentMethod === "bank_transfer" ? "text-blue-400" : "text-white/70"}`}>
+                {locale === "th" ? "เงินโอน" : "Transfer"}
+              </p>
+            </button>
+          </div>
+
           {/* Action Buttons */}
           <div className="flex gap-2">
             <Button
@@ -383,7 +418,7 @@ export default function StaffSessionPage() {
             </Button>
             <Button
               variant="danger"
-              onClick={() => { setShowQuickStart(false); setQsServiceId(0); setQsBedId(0); }}
+              onClick={() => { setShowQuickStart(false); setQsServiceId(0); setQsBedId(0); setQsPaymentMethod("cash"); }}
             >
               {locale === "th" ? "ยกเลิก" : "Cancel"}
             </Button>

@@ -12,6 +12,16 @@ export class DashboardController {
     return this.dashboardService.getDailyMetrics(date);
   }
 
+  @Get("weekly")
+  getWeeklyRevenue() {
+    return this.dashboardService.getWeeklyRevenue();
+  }
+
+  @Get("monthly")
+  getMonthlyRevenue() {
+    return this.dashboardService.getMonthlyRevenue();
+  }
+
   @Get("therapists")
   getTherapistPerformance(@Query("date") date?: string) {
     return this.dashboardService.getTherapistPerformance(date);

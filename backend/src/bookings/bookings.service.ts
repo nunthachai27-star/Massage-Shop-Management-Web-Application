@@ -117,7 +117,7 @@ export class BookingsService {
     await client.from("payments").insert({
       booking_id: booking.id,
       amount: service.price,
-      method: "cash",
+      method: dto.payment_method || "cash",
       status: "pending",
     });
 

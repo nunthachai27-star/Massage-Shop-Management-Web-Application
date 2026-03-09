@@ -78,6 +78,8 @@ export const api = {
   // Dashboard
   getDailyMetrics: (date?: string) =>
     apiFetch<ApiRecord>(`/dashboard/daily${date ? `?date=${date}` : ""}`),
+  getWeeklyRevenue: () => apiFetch<ApiRecord>("/dashboard/weekly"),
+  getMonthlyRevenue: () => apiFetch<ApiRecord>("/dashboard/monthly"),
   getTherapistPerformance: (date?: string) =>
     apiFetch<ApiRecord[]>(`/dashboard/therapists${date ? `?date=${date}` : ""}`),
 
