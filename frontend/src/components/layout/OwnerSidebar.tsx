@@ -10,6 +10,7 @@ const navItems = [
   { href: "/owner/therapists", labelKey: "owner.therapistPerformance", icon: "👥" },
   { href: "/owner/manage-therapists", labelKey: "owner.manageTherapists", icon: "🩺" },
   { href: "/owner/services", labelKey: "owner.manageServices", icon: "💆" },
+  { href: "/owner/bookings", labelKey: "staff.bookings", icon: "📋" },
 ];
 
 export function OwnerSidebar() {
