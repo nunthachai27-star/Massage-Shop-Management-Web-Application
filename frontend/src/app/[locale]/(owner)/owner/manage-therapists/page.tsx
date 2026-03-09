@@ -12,10 +12,8 @@ interface TherapistData {
   id: number;
   name_th: string;
   name_en: string;
-  skills: string[];
-  rating: number;
+  pin: string | null;
   status: string;
-  experience: number;
   is_active: boolean;
 }
 
@@ -24,15 +22,11 @@ function toTherapist(r: ApiRecord): TherapistData {
     id: r.id as number,
     name_th: r.name_th as string,
     name_en: r.name_en as string,
-    skills: (r.skills as string[]) || [],
-    rating: Number(r.rating),
+    pin: (r.pin as string) || null,
     status: r.status as string,
-    experience: (r.experience || 0) as number,
     is_active: r.is_active as boolean,
   };
 }
-
-const SKILL_OPTIONS = ["Thai Massage", "Oil Massage", "Foot Massage", "Head & Shoulder Massage"];
 
 export default function ManageTherapistsPage() {
   const t = useTranslations("owner");
@@ -46,14 +40,14 @@ export default function ManageTherapistsPage() {
   const [formNameTh, setFormNameTh] = useState("");
   const [formNameEn, setFormNameEn] = useState("");
   const [formPin, setFormPin] = useState("");
-  const [formExperience, setFormExperience] = useState(0);
-  const [formSkills, setFormSkills] = useState<string[]>([]);
 
   const fetchTherapists = useCallback(async () => {
     setLoading(true);
     try {
       const data = await api.getAllTherapists();
-      setTherapists(data.map(toTherapist));
+      const list = data.map(toTherapist);
+      list.sort((a, b) => (a.is_active === b.is_active ? 0 : a.is_active ? -1 : 1));
+      setTherapists(list);
     } catch {
       setTherapists([]);
     }
@@ -68,8 +62,6 @@ export default function ManageTherapistsPage() {
     setFormNameTh("");
     setFormNameEn("");
     setFormPin("");
-    setFormExperience(0);
-    setFormSkills([]);
     setEditingId(null);
     setShowForm(false);
   };
@@ -83,16 +75,8 @@ export default function ManageTherapistsPage() {
     setFormNameTh(th.name_th);
     setFormNameEn(th.name_en);
     setFormPin("");
-    setFormExperience(th.experience);
-    setFormSkills([...th.skills]);
     setEditingId(th.id);
     setShowForm(true);
-  };
-
-  const toggleSkill = (skill: string) => {
-    setFormSkills((prev) =>
-      prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
-    );
   };
 
   const handleSubmit = async () => {
@@ -101,8 +85,6 @@ export default function ManageTherapistsPage() {
     const payload: Record<string, unknown> = {
       name_th: formNameTh.trim(),
       name_en: formNameEn.trim(),
-      skills: formSkills,
-      experience: formExperience,
     };
     if (formPin.trim()) payload.pin = formPin.trim();
 
@@ -195,46 +177,16 @@ export default function ManageTherapistsPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-white/50 text-xs mb-1 block">{t("pin")}</label>
-                <input
-                  type="text"
-                  value={formPin}
-                  onChange={(e) => setFormPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  className="w-full bg-surface-dark border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
-                  placeholder="1234"
-                  maxLength={4}
-                />
-              </div>
-              <div>
-                <label className="text-white/50 text-xs mb-1 block">{t("experience")}</label>
-                <input
-                  type="number"
-                  value={formExperience}
-                  onChange={(e) => setFormExperience(Number(e.target.value))}
-                  className="w-full bg-surface-dark border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
-                  min={0}
-                />
-              </div>
-            </div>
             <div>
-              <label className="text-white/50 text-xs mb-1 block">{t("skills")}</label>
-              <div className="flex flex-wrap gap-2">
-                {SKILL_OPTIONS.map((skill) => (
-                  <button
-                    key={skill}
-                    onClick={() => toggleSkill(skill)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                      formSkills.includes(skill)
-                        ? "bg-accent-gold/20 text-accent-gold border border-accent-gold/30"
-                        : "bg-surface-dark text-white/50 border border-white/10 hover:border-white/20"
-                    }`}
-                  >
-                    {skill}
-                  </button>
-                ))}
-              </div>
+              <label className="text-white/50 text-xs mb-1 block">{t("pin")}</label>
+              <input
+                type="text"
+                value={formPin}
+                onChange={(e) => setFormPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                className="w-full bg-surface-dark border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
+                placeholder="1234"
+                maxLength={4}
+              />
             </div>
             <div className="flex gap-2 pt-2">
               <button
@@ -291,19 +243,8 @@ export default function ManageTherapistsPage() {
                       </Badge>
                     </div>
                     <div className="flex gap-2 text-xs text-white/40">
-                      <span>{th.experience} {locale === "th" ? "ปี" : "yrs"}</span>
-                      <span>PIN: {th.id}</span>
-                      <span>⭐ {th.rating}</span>
+                      <span>PIN: {th.pin || (locale === "th" ? "ยังไม่ตั้ง" : "Not set")}</span>
                     </div>
-                    {th.skills.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {th.skills.map((s) => (
-                          <span key={s} className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/40">
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   {/* Actions */}

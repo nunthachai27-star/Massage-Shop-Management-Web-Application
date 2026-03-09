@@ -23,10 +23,11 @@ export class TherapistsService {
   }
 
   async findAllIncludingInactive() {
+    const ownerColumns = this.publicColumns + ", pin";
     const { data, error } = await this.supabase
       .getClient()
       .from("therapists")
-      .select(this.publicColumns)
+      .select(ownerColumns)
       .order("id");
     if (error) throw error;
     return data;
