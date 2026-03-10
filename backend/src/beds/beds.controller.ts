@@ -1,12 +1,14 @@
 import { Controller, Get, Patch, Param, Body, ParseIntPipe } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { BedsService } from "./beds.service";
+import { Public } from "../auth/decorators/public.decorator";
 
 @ApiTags("beds")
 @Controller("beds")
 export class BedsController {
   constructor(private readonly bedsService: BedsService) {}
 
+  @Public()
   @Get()
   findAll() {
     return this.bedsService.findAll();

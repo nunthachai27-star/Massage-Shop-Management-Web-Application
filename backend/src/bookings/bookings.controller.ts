@@ -12,6 +12,7 @@ import { ApiTags } from "@nestjs/swagger";
 import { BookingsService } from "./bookings.service";
 import { CreateBookingDto } from "./dto/create-booking.dto";
 import { UpdateBookingStatusDto } from "./dto/update-booking-status.dto";
+import { Public } from "../auth/decorators/public.decorator";
 
 @ApiTags("Bookings")
 @Controller("bookings")
@@ -23,6 +24,7 @@ export class BookingsController {
     return this.bookingsService.findAll(status, date);
   }
 
+  @Public()
   @Get("availability")
   getAvailableSlots(
     @Query("therapistId", ParseIntPipe) therapistId: number,

@@ -8,8 +8,10 @@ import {
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { CommissionsService } from "./commissions.service";
+import { Roles } from "../auth/decorators/roles.decorator";
 
 @ApiTags("Commissions")
+@Roles("owner")
 @Controller("commissions")
 export class CommissionsController {
   constructor(private readonly commissionsService: CommissionsService) {}

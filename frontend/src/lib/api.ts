@@ -2,13 +2,24 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 type ApiRecord = Record<string, unknown>;
 
+function getAuthToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("authToken");
+}
+
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = getAuthToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options?.headers as Record<string, string>),
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
     ...options,
+    headers,
   });
   if (!res.ok) {
     const error = await res.text();
@@ -32,7 +43,7 @@ export const api = {
   getTherapists: (status?: string) =>
     apiFetch<ApiRecord[]>(`/therapists${status ? `?status=${status}` : ""}`),
   getAllTherapists: () =>
-    apiFetch<ApiRecord[]>("/therapists?all=true"),
+    apiFetch<ApiRecord[]>("/therapists/all"),
   createTherapist: (data: Record<string, unknown>) =>
     apiFetch<ApiRecord>("/therapists", { method: "POST", body: JSON.stringify(data) }),
   updateTherapist: (id: number, data: Record<string, unknown>) =>
