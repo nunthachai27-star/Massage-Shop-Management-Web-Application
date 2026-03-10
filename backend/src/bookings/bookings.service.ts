@@ -95,7 +95,7 @@ export class BookingsService {
       );
     }
 
-    // 4. Create booking (bed assigned at check-in, not at booking time)
+    // 4. Create booking (bed can be assigned at booking time or at check-in)
     const { data: booking, error } = await client
       .from("bookings")
       .insert({
@@ -104,7 +104,7 @@ export class BookingsService {
         phone: dto.phone,
         service_id: dto.service_id,
         therapist_id: dto.therapist_id,
-        bed_id: null,
+        bed_id: dto.bed_id || null,
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
         status: "booked",
@@ -113,7 +113,15 @@ export class BookingsService {
       .single();
     if (error) throw error;
 
-    // 5. Create payment (pending)
+    // 5. Reserve bed if assigned at booking time
+    if (dto.bed_id) {
+      await client
+        .from("beds")
+        .update({ status: "reserved", current_booking_id: booking.id })
+        .eq("id", dto.bed_id);
+    }
+
+    // 6. Create payment (pending)
     await client.from("payments").insert({
       booking_id: booking.id,
       amount: service.price,

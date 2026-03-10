@@ -1,10 +1,13 @@
-import { getTranslations } from "next-intl/server";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { beds as mockBeds, type Bed } from "@/data/beds";
-import { bookings as mockBookings, type Booking } from "@/data/bookings";
-import { services as mockServices, type Service } from "@/data/services";
-import { therapists as mockTherapists, type Therapist } from "@/data/therapists";
+import { type Bed } from "@/data/beds";
+import { type Booking } from "@/data/bookings";
+import { type Service } from "@/data/services";
+import { type Therapist } from "@/data/therapists";
 import { api } from "@/lib/api";
 import { transformBed, transformBooking, transformService, transformTherapist } from "@/lib/transform";
 
@@ -15,37 +18,56 @@ const statusConfig = {
   cleaning: { label: { th: "ทำความสะอาด", en: "Cleaning" }, variant: "gray" as const },
 };
 
-export default async function StaffDashboardPage() {
-  const t = await getTranslations();
+export default function StaffDashboardPage() {
+  const t = useTranslations();
+  const locale = useLocale();
 
-  let beds: Bed[], bookings: Booking[], services: Service[], therapists: Therapist[];
-  try {
-    const [rawBeds, rawBookings, rawServices, rawTherapists] = await Promise.all([
-      api.getBeds(),
-      api.getBookings(),
-      api.getServices(),
-      api.getTherapists(),
-    ]);
-    beds = rawBeds.map(transformBed);
-    bookings = rawBookings.map(transformBooking);
-    services = rawServices.map(transformService);
-    therapists = rawTherapists.map(transformTherapist);
-  } catch {
-    beds = mockBeds;
-    bookings = mockBookings;
-    services = mockServices;
-    therapists = mockTherapists;
-  }
+  const [beds, setBeds] = useState<Bed[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [therapists, setTherapists] = useState<Therapist[]>([]);
+
+  useEffect(() => {
+    const fetchData = () => {
+      Promise.all([
+        api.getBeds(),
+        api.getBookings(),
+        api.getServices(),
+        api.getTherapists(),
+      ]).then(([rawBeds, rawBookings, rawServices, rawTherapists]) => {
+        setBeds(rawBeds.map(transformBed));
+        setBookings(rawBookings.map(transformBooking));
+        setServices(rawServices.map(transformService));
+        setTherapists(rawTherapists.map(transformTherapist));
+      }).catch(() => {});
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div>
       <h1 className="font-heading text-xl md:text-2xl text-white mb-4 md:mb-6">{t("staff.beds")}</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {beds.map((bed) => {
-          const config = statusConfig[bed.status];
-          const booking = bed.currentBookingId
+          // Find active booking for this bed: in_service first, then booked
+          const activeBooking = bed.currentBookingId
             ? bookings.find((b) => b.id === bed.currentBookingId)
             : null;
+          const bookedBooking = !activeBooking
+            ? bookings.find((b) => b.bedId === bed.id && (b.status === "booked" || b.status === "in_service"))
+            : null;
+          const booking = activeBooking || bookedBooking;
+
+          // Determine effective status: if bed looks available but has a "booked" booking, show as reserved
+          let effectiveStatus = bed.status;
+          if (bed.status === "available" && booking) {
+            effectiveStatus = booking.status === "in_service" ? "in_service" : "reserved";
+          }
+          const config = statusConfig[effectiveStatus];
+
           const service = booking
             ? services.find((s) => s.id === booking.serviceId)
             : null;
@@ -57,28 +79,30 @@ export default async function StaffDashboardPage() {
             <Card key={bed.id}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-heading text-lg text-white">{bed.name}</h3>
-                <Badge variant={config.variant}>{config.label.th}</Badge>
+                <Badge variant={config.variant}>
+                  {locale === "th" ? config.label.th : config.label.en}
+                </Badge>
               </div>
               {booking && (
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-white/50">Customer</span>
+                    <span className="text-white/50">{locale === "th" ? "ลูกค้า" : "Customer"}</span>
                     <span className="text-white">{booking.customerName}</span>
                   </div>
                   {service && (
                     <div className="flex justify-between">
-                      <span className="text-white/50">Service</span>
-                      <span className="text-white">{service.name.th}</span>
+                      <span className="text-white/50">{locale === "th" ? "บริการ" : "Service"}</span>
+                      <span className="text-white">{locale === "th" ? service.name.th : service.name.en}</span>
                     </div>
                   )}
                   {therapist && (
                     <div className="flex justify-between">
-                      <span className="text-white/50">Therapist</span>
-                      <span className="text-white">{therapist.name.th}</span>
+                      <span className="text-white/50">{locale === "th" ? "หมอนวด" : "Therapist"}</span>
+                      <span className="text-white">{locale === "th" ? therapist.name.th : therapist.name.en}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-white/50">Time</span>
+                    <span className="text-white/50">{locale === "th" ? "เวลา" : "Time"}</span>
                     <span className="text-white">
                       {new Date(booking.startTime).toLocaleTimeString("th", { hour: "2-digit", minute: "2-digit" })}
                       {" - "}
@@ -87,7 +111,6 @@ export default async function StaffDashboardPage() {
                   </div>
                 </div>
               )}
-              {/* ห้องว่าง — ไม่แสดงข้อมูล */}
             </Card>
           );
         })}

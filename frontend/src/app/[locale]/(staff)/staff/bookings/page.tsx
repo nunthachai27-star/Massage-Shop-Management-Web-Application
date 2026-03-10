@@ -114,10 +114,11 @@ export default function StaffBookingsPage() {
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Booking form state (no room - room is selected at check-in)
+  // Booking form state
   const [serviceId, setServiceId] = useState(0);
   const [therapistId, setTherapistId] = useState(0);
   const [startTime, setStartTime] = useState("");
+  const [bedId, setBedId] = useState(0);
 
   // Check-in state: which booking is being checked in, and which room is selected
   const [checkinBookingId, setCheckinBookingId] = useState<number | null>(null);
@@ -190,6 +191,7 @@ export default function StaffBookingsPage() {
     setServiceId(0);
     setTherapistId(0);
     setStartTime("");
+    setBedId(0);
     setShowForm(false);
   };
 
@@ -204,7 +206,7 @@ export default function StaffBookingsPage() {
     setSelectedCustomer(null);
   };
 
-  // Create booking (no room yet)
+  // Create booking with room
   const handleSubmit = async () => {
     let customer: Customer;
 
@@ -218,7 +220,7 @@ export default function StaffBookingsPage() {
       return;
     }
 
-    if (!serviceId || !therapistId || !startTime) return;
+    if (!serviceId || !therapistId || !startTime || !bedId) return;
 
     const service = services.find((s) => s.id === serviceId);
     const duration = service?.duration || 60;
@@ -246,7 +248,7 @@ export default function StaffBookingsPage() {
       phone: customer.phone,
       serviceId,
       therapistId,
-      bedId: 0,
+      bedId,
       startTime: start.toISOString(),
       endTime: end.toISOString(),
       status: "booked",
@@ -259,7 +261,7 @@ export default function StaffBookingsPage() {
         phone: customer.phone,
         service_id: serviceId,
         therapist_id: therapistId,
-        bed_id: 0,
+        bed_id: bedId,
         start_time: start.toISOString(),
       });
       if (result?.id) newBooking.id = result.id as number;
@@ -371,7 +373,7 @@ export default function StaffBookingsPage() {
   };
 
   const hasCustomer = selectedCustomer || (isNewCustomer && newCustomerName);
-  const isFormValid = hasCustomer && serviceId && therapistId && startTime;
+  const isFormValid = hasCustomer && serviceId && therapistId && startTime && bedId;
 
   return (
     <div>
@@ -644,6 +646,40 @@ export default function StaffBookingsPage() {
                       }`}
                     >
                       <span className={`${isHour ? "text-sm font-semibold" : "text-xs"}`}>{slot}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Room Selection */}
+            <div>
+              <label className="block text-white/50 text-sm mb-2">
+                {locale === "th" ? "เลือกห้อง" : "Room"}
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {beds.map((b) => {
+                  const isBooked = bookings.some(
+                    (bk) => bk.bedId === b.id && (bk.status === "booked" || bk.status === "in_service")
+                  );
+                  const isAvailable = b.status === "available" && !isBooked;
+                  return (
+                    <button
+                      key={b.id}
+                      onClick={() => isAvailable && setBedId(b.id)}
+                      disabled={!isAvailable}
+                      className={`p-3 rounded-lg border text-center transition-all ${
+                        !isAvailable
+                          ? "border-white/5 text-white/20 cursor-not-allowed"
+                          : bedId === b.id
+                            ? "border-accent-gold bg-accent-gold/10 text-accent-gold cursor-pointer"
+                            : "border-white/10 text-white/70 hover:border-white/30 cursor-pointer"
+                      }`}
+                    >
+                      <p className="font-medium text-sm">{b.name}</p>
+                      {!isAvailable && (
+                        <p className="text-xs mt-1 opacity-40">{locale === "th" ? "ไม่ว่าง" : "Busy"}</p>
+                      )}
                     </button>
                   );
                 })}

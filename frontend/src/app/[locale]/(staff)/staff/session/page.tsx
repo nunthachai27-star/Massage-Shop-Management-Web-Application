@@ -5,14 +5,14 @@ import { useTranslations, useLocale } from "next-intl";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { bookings as mockBookings, type Booking } from "@/data/bookings";
-import { services as mockServices, type Service } from "@/data/services";
+import { type Booking } from "@/data/bookings";
+import { type Service } from "@/data/services";
 import { type Therapist } from "@/data/therapists";
-import { beds as mockBeds, type Bed } from "@/data/beds";
+import { type Bed } from "@/data/beds";
 import { api } from "@/lib/api";
-import { transformBooking, transformService, transformBed } from "@/lib/transform";
+import { transformBooking, transformService, transformTherapist, transformBed } from "@/lib/transform";
 
-// Commission calculation: 600→100, 800→150, 1000→200, Thai massage → half
+// Commission calculation
 function getCommission(price: number, isThaiMassage: boolean): number {
   let commission = 0;
   if (price >= 1000) commission = 250;
@@ -33,98 +33,94 @@ export default function StaffSessionPage() {
   const t = useTranslations();
   const locale = useLocale();
 
-  const [therapist, setTherapist] = useState<Therapist | null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("loggedInTherapist");
-    if (stored) setTherapist(JSON.parse(stored));
-    setMounted(true);
-  }, []);
-
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [beds, setBeds] = useState<Bed[]>([]);
-  const [now, setNow] = useState(new Date());
+  const [now, setNow] = useState<Date | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   // Check-in state
-  const [checkinBookingId, setCheckinBookingId] = useState<number | null>(null);
-  const [checkinBedId, setCheckinBedId] = useState(0);
+  const [checkinLoading, setCheckinLoading] = useState<number | null>(null);
 
-  // Quick start (walk-in) state
+  // Quick start state
   const [showQuickStart, setShowQuickStart] = useState(false);
+  const [qsTherapistId, setQsTherapistId] = useState(0);
   const [qsServiceId, setQsServiceId] = useState(0);
   const [qsBedId, setQsBedId] = useState(0);
   const [qsPaymentMethod, setQsPaymentMethod] = useState<"cash" | "bank_transfer">("cash");
   const [qsLoading, setQsLoading] = useState(false);
 
   useEffect(() => {
+    setNow(new Date());
+    setMounted(true);
     const interval = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     Promise.all([
-      api.getBookings(), api.getServices(), api.getBeds(),
-    ]).then(([rawB, rawS, rawBd]) => {
+      api.getBookings(), api.getServices(), api.getTherapists(), api.getBeds(),
+    ]).then(([rawB, rawS, rawT, rawBd]) => {
       setBookings(rawB.map(transformBooking));
       setServices(rawS.map(transformService));
+      setTherapists(rawT.map(transformTherapist));
       setBeds(rawBd.map(transformBed));
     }).catch(() => {});
   }, []);
 
-  // Filter bookings for this therapist only, exclude checkout
-  const myBookings = therapist
-    ? bookings
-        .filter((b) => b.therapistId === therapist.id && b.status !== "checkout" && b.status !== "cancelled")
-        .sort((a, b) => {
-          const order = { booked: 1, in_service: 0, completed: 2 };
-          const oa = order[a.status as keyof typeof order] ?? 3;
-          const ob = order[b.status as keyof typeof order] ?? 3;
-          return oa - ob;
-        })
-    : [];
+  // All today's bookings, exclude checkout and cancelled
+  const todayBookings = bookings
+    .filter((b) => {
+      const today = new Date();
+      const bd = new Date(b.startTime);
+      return bd.getFullYear() === today.getFullYear() &&
+        bd.getMonth() === today.getMonth() &&
+        bd.getDate() === today.getDate() &&
+        b.status !== "checkout" && b.status !== "cancelled";
+    })
+    .sort((a, b) => {
+      const order = { in_service: 0, booked: 1, completed: 2 };
+      const oa = order[a.status as keyof typeof order] ?? 3;
+      const ob = order[b.status as keyof typeof order] ?? 3;
+      if (oa !== ob) return oa - ob;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
-  // Commission summary: count from in_service + completed bookings
-  const commissionBookings = therapist
-    ? bookings.filter((b) => b.therapistId === therapist.id && (b.status === "in_service" || b.status === "completed" || b.status === "checkout"))
-    : [];
-  const totalCommission = commissionBookings.reduce((sum, b) => {
+  // Commission summary for all therapists
+  const allCommissionBookings = bookings.filter(
+    (b) => b.status === "in_service" || b.status === "completed" || b.status === "checkout"
+  );
+  const totalCommission = allCommissionBookings.reduce((sum, b) => {
     const service = services.find((s) => s.id === b.serviceId);
     if (!service) return sum;
     const isThaiMassage = service.name.th.includes("แผนไทย");
     return sum + getCommission(service.price, isThaiMassage);
   }, 0);
 
-  // Check-in: assign room and start service
+  // Check-in — room is already assigned from booking, just start service
   const handleCheckin = (bookingId: number) => {
-    setCheckinBookingId(bookingId);
-    setCheckinBedId(0);
-  };
-
-  const confirmCheckin = () => {
-    if (!checkinBookingId || !checkinBedId) return;
-
+    const booking = bookings.find((b) => b.id === bookingId);
+    if (!booking) return;
+    setCheckinLoading(bookingId);
     setBookings((prev) =>
       prev.map((b) =>
-        b.id === checkinBookingId
-          ? { ...b, bedId: checkinBedId, status: "in_service" as const, startTime: new Date().toISOString() }
+        b.id === bookingId
+          ? { ...b, status: "in_service" as const, startTime: new Date().toISOString() }
           : b
       )
     );
-
-    setBeds((prev) =>
-      prev.map((bed) =>
-        bed.id === checkinBedId
-          ? { ...bed, status: "in_service" as const, currentBookingId: checkinBookingId }
-          : bed
-      )
-    );
-
-    api.updateBookingStatus(checkinBookingId, "in_service", checkinBedId).catch(() => {});
-
-    setCheckinBookingId(null);
-    setCheckinBedId(0);
+    if (booking.bedId) {
+      setBeds((prev) =>
+        prev.map((bed) =>
+          bed.id === booking.bedId
+            ? { ...bed, status: "in_service" as const, currentBookingId: bookingId }
+            : bed
+        )
+      );
+    }
+    api.updateBookingStatus(bookingId, "in_service", booking.bedId).catch(() => {});
+    setCheckinLoading(null);
   };
 
   // End service
@@ -167,9 +163,29 @@ export default function StaffSessionPage() {
     api.updateBookingStatus(bookingId, "checkout").catch(() => {});
   };
 
-  // Quick start: create booking + start service immediately
+  // Cancel booking (to edit/re-create)
+  const handleCancelBooking = (bookingId: number) => {
+    const booking = bookings.find((b) => b.id === bookingId);
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.id === bookingId ? { ...b, status: "cancelled" as const } : b
+      )
+    );
+    if (booking?.bedId) {
+      setBeds((prev) =>
+        prev.map((bed) =>
+          bed.id === booking.bedId
+            ? { ...bed, status: "available" as const, currentBookingId: undefined }
+            : bed
+        )
+      );
+    }
+    api.updateBookingStatus(bookingId, "cancelled").catch(() => {});
+  };
+
+  // Quick start
   const handleQuickStart = async () => {
-    if (!qsServiceId || !qsBedId || !therapist) return;
+    if (!qsServiceId || !qsBedId || !qsTherapistId) return;
     setQsLoading(true);
     const service = services.find(s => s.id === qsServiceId);
     if (!service) return;
@@ -181,7 +197,7 @@ export default function StaffSessionPage() {
       customer_name: locale === "th" ? "ลูกค้า Walk-in" : "Walk-in Customer",
       phone: "-",
       service_id: qsServiceId,
-      therapist_id: therapist.id,
+      therapist_id: qsTherapistId,
       bed_id: qsBedId,
       start_time: now2.toISOString(),
       end_time: endTime.toISOString(),
@@ -194,18 +210,14 @@ export default function StaffSessionPage() {
       const newBooking = transformBooking(result as Record<string, unknown>);
       setBookings(prev => [...prev, newBooking]);
       setBeds(prev => prev.map(b => b.id === qsBedId ? { ...b, status: "in_service" as const, currentBookingId: newBooking.id } : b));
-      setShowQuickStart(false);
-      setQsServiceId(0);
-      setQsBedId(0);
     } catch {
-      // fallback: add locally
       const fakeId = Date.now();
       const newBooking: Booking = {
         id: fakeId,
         customerName: locale === "th" ? "ลูกค้า Walk-in" : "Walk-in Customer",
         phone: "-",
         serviceId: qsServiceId,
-        therapistId: therapist.id,
+        therapistId: qsTherapistId,
         bedId: qsBedId,
         startTime: now2.toISOString(),
         endTime: endTime.toISOString(),
@@ -214,62 +226,45 @@ export default function StaffSessionPage() {
       };
       setBookings(prev => [...prev, newBooking]);
       setBeds(prev => prev.map(b => b.id === qsBedId ? { ...b, status: "in_service" as const, currentBookingId: fakeId } : b));
-      setShowQuickStart(false);
-      setQsServiceId(0);
-      setQsBedId(0);
     }
+    setShowQuickStart(false);
+    setQsTherapistId(0);
+    setQsServiceId(0);
+    setQsBedId(0);
+    setQsPaymentMethod("cash");
     setQsLoading(false);
   };
 
-  const availableBeds = beds.filter(b => b.status === "available");
-
-  if (!mounted || !therapist) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        {mounted && (
-          <Card>
-            <p className="text-white/50 text-center py-8">
-              {locale === "th" ? "กรุณาเข้าสู่ระบบก่อน" : "Please login first"}
-            </p>
-          </Card>
-        )}
-      </div>
-    );
-  }
-
-  const displayName = locale === "th" ? therapist.name.th : therapist.name.en;
-
   return (
     <div>
-      {/* Header with therapist info */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-4 md:mb-6">
         <div>
           <h1 className="font-heading text-xl md:text-2xl text-white">{t("staff.session")}</h1>
           <p className="text-white/50 text-xs md:text-sm mt-1">
-            {displayName} — {myBookings.length} {locale === "th" ? "รายการ" : "booking(s)"}
+            {todayBookings.length} {locale === "th" ? "รายการวันนี้" : "booking(s) today"}
           </p>
         </div>
         <div className="text-right">
           <p className="text-accent-gold text-lg md:text-2xl font-bold font-mono">
-            {now.toLocaleTimeString("th", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            {mounted && now ? now.toLocaleTimeString("th", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "--:--:--"}
           </p>
         </div>
       </div>
 
-      {/* Commission - Hero Display */}
-      <div className="relative mb-4 md:mb-6 rounded-2xl overflow-hidden border-2 border-emerald-400/40 bg-gradient-to-br from-emerald-900/40 via-emerald-800/20 to-surface-card p-6 md:p-8 text-center">
-        {/* Glow effect */}
+      {/* Commission Summary */}
+      <div className="relative mb-4 md:mb-6 rounded-2xl overflow-hidden border-2 border-emerald-400/40 bg-gradient-to-br from-emerald-900/40 via-emerald-800/20 to-surface-card p-5 md:p-6 text-center">
         <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent pointer-events-none" />
         <div className="relative">
-          <p className="text-emerald-300/70 text-sm md:text-base font-medium tracking-wide uppercase mb-2">
-            💰 {locale === "th" ? "ค่าคอมมิชชั่นวันนี้" : "Today's Commission"}
+          <p className="text-emerald-300/70 text-sm font-medium tracking-wide uppercase mb-2">
+            💰 {locale === "th" ? "ค่าคอมรวมวันนี้" : "Total Commission Today"}
           </p>
-          <p className="text-5xl md:text-7xl font-extrabold text-emerald-400 font-mono leading-none drop-shadow-[0_0_20px_rgba(52,211,153,0.3)]">
+          <p className="text-4xl md:text-6xl font-extrabold text-emerald-400 font-mono leading-none drop-shadow-[0_0_20px_rgba(52,211,153,0.3)]">
             ฿{totalCommission.toLocaleString()}
           </p>
           <div className="mt-3 inline-flex items-center gap-2 bg-emerald-500/15 px-4 py-1.5 rounded-full">
             <span className="text-emerald-300 text-sm font-medium">
-              {commissionBookings.length} {locale === "th" ? "รายการ" : "session(s)"}
+              {allCommissionBookings.length} {locale === "th" ? "รายการ" : "session(s)"}
             </span>
           </div>
         </div>
@@ -279,19 +274,19 @@ export default function StaffSessionPage() {
       <div className="grid grid-cols-3 gap-2 md:gap-3 mb-4 md:mb-6">
         <Card className="text-center !py-3">
           <p className="text-2xl font-bold text-blue-400">
-            {myBookings.filter((b) => b.status === "booked").length}
+            {todayBookings.filter((b) => b.status === "booked").length}
           </p>
           <p className="text-white/40 text-xs mt-1">{locale === "th" ? "รอเช็คอิน" : "Waiting"}</p>
         </Card>
         <Card className="text-center !py-3">
           <p className="text-2xl font-bold text-green-400">
-            {myBookings.filter((b) => b.status === "in_service").length}
+            {todayBookings.filter((b) => b.status === "in_service").length}
           </p>
           <p className="text-white/40 text-xs mt-1">{locale === "th" ? "กำลังทำ" : "Active"}</p>
         </Card>
         <Card className="text-center !py-3">
           <p className="text-2xl font-bold text-accent-gold">
-            {myBookings.filter((b) => b.status === "completed").length}
+            {todayBookings.filter((b) => b.status === "completed").length}
           </p>
           <p className="text-white/40 text-xs mt-1">{locale === "th" ? "เสร็จแล้ว" : "Done"}</p>
         </Card>
@@ -315,91 +310,123 @@ export default function StaffSessionPage() {
             {locale === "th" ? "เริ่มงานใหม่" : "Start New Session"}
           </h3>
 
-          {/* Service Selection - 2 step */}
-          <p className="text-white/50 text-sm mb-2">
-            {locale === "th" ? "เลือกบริการ" : "Select Service"}
-          </p>
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            {services.map(s => (
-              <button
-                key={s.id}
-                onClick={() => setQsServiceId(s.id)}
-                className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
-                  qsServiceId === s.id
-                    ? "border-accent-gold bg-accent-gold/10"
-                    : "border-white/10 hover:border-white/30"
-                }`}
-              >
-                <p className={`text-sm font-medium ${qsServiceId === s.id ? "text-accent-gold" : "text-white"}`}>
-                  {locale === "th" ? s.name.th : s.name.en}
-                </p>
-                <p className="text-white/40 text-xs mt-1">
-                  {s.duration} {locale === "th" ? "นาที" : "min"} — ฿{s.price.toLocaleString()}
-                </p>
-              </button>
-            ))}
-          </div>
-
-          {/* Room Selection */}
-          <p className="text-white/50 text-sm mb-2">
-            {locale === "th" ? "เลือกห้อง" : "Select Room"}
-          </p>
-          <div className="grid grid-cols-4 gap-2 mb-4">
-            {beds.map(b => {
-              const isAvailable = b.status === "available";
-              return (
+          {/* Therapist Selection — Purple theme */}
+          <div className="mb-5 p-3 rounded-xl bg-purple-500/5 border border-purple-500/10">
+            <p className="text-purple-300 text-sm font-medium mb-2 flex items-center gap-1.5">
+              <span className="text-base">👤</span>
+              {locale === "th" ? "เลือกหมอนวด" : "Select Therapist"}
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {therapists.map(th => (
                 <button
-                  key={b.id}
-                  onClick={() => isAvailable && setQsBedId(b.id)}
-                  disabled={!isAvailable}
-                  className={`p-3 rounded-lg border text-center transition-all ${
-                    !isAvailable
-                      ? "border-white/5 text-white/20 cursor-not-allowed"
-                      : qsBedId === b.id
-                        ? "border-accent-gold bg-accent-gold/10 text-accent-gold cursor-pointer"
-                        : "border-white/10 text-white/70 hover:border-white/30 cursor-pointer"
+                  key={th.id}
+                  onClick={() => setQsTherapistId(th.id)}
+                  className={`p-3 rounded-lg border-2 text-center transition-all cursor-pointer ${
+                    qsTherapistId === th.id
+                      ? "border-purple-400 bg-purple-500/20 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.15)]"
+                      : "border-white/10 text-white/70 hover:border-purple-400/40 hover:bg-purple-500/5"
                   }`}
                 >
-                  <p className="font-medium text-sm">{b.name}</p>
-                  {!isAvailable && (
-                    <p className="text-xs mt-1 opacity-40">{locale === "th" ? "ไม่ว่าง" : "Busy"}</p>
-                  )}
+                  <p className="font-medium text-sm">{locale === "th" ? th.name.th : th.name.en}</p>
                 </button>
-              );
-            })}
+              ))}
+            </div>
           </div>
 
-          {/* Payment Method */}
-          <p className="text-white/50 text-sm mb-2">
-            {locale === "th" ? "ประเภทการรับเงิน" : "Payment Method"}
-          </p>
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            <button
-              onClick={() => setQsPaymentMethod("cash")}
-              className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
-                qsPaymentMethod === "cash"
-                  ? "border-green-400 bg-green-500/10"
-                  : "border-white/10 hover:border-white/30"
-              }`}
-            >
-              <span className="text-2xl">💵</span>
-              <p className={`text-sm font-medium mt-1 ${qsPaymentMethod === "cash" ? "text-green-400" : "text-white/70"}`}>
-                {locale === "th" ? "เงินสด" : "Cash"}
-              </p>
-            </button>
-            <button
-              onClick={() => setQsPaymentMethod("bank_transfer")}
-              className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
-                qsPaymentMethod === "bank_transfer"
-                  ? "border-blue-400 bg-blue-500/10"
-                  : "border-white/10 hover:border-white/30"
-              }`}
-            >
-              <span className="text-2xl">📱</span>
-              <p className={`text-sm font-medium mt-1 ${qsPaymentMethod === "bank_transfer" ? "text-blue-400" : "text-white/70"}`}>
-                {locale === "th" ? "เงินโอน" : "Transfer"}
-              </p>
-            </button>
+          {/* Service Selection — Amber/Gold theme */}
+          <div className="mb-5 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10">
+            <p className="text-amber-300 text-sm font-medium mb-2 flex items-center gap-1.5">
+              <span className="text-base">💆</span>
+              {locale === "th" ? "เลือกบริการ" : "Select Service"}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {services.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => setQsServiceId(s.id)}
+                  className={`p-3 rounded-lg border-2 text-left transition-all cursor-pointer ${
+                    qsServiceId === s.id
+                      ? "border-amber-400 bg-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+                      : "border-white/10 hover:border-amber-400/40 hover:bg-amber-500/5"
+                  }`}
+                >
+                  <p className={`text-sm font-medium ${qsServiceId === s.id ? "text-amber-300" : "text-white"}`}>
+                    {locale === "th" ? s.name.th : s.name.en}
+                  </p>
+                  <p className="text-white/40 text-xs mt-1">
+                    {s.duration} {locale === "th" ? "นาที" : "min"} — ฿{s.price.toLocaleString()}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Room Selection — Cyan/Teal theme */}
+          <div className="mb-5 p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/10">
+            <p className="text-cyan-300 text-sm font-medium mb-2 flex items-center gap-1.5">
+              <span className="text-base">🚪</span>
+              {locale === "th" ? "เลือกห้อง" : "Select Room"}
+            </p>
+            <div className="grid grid-cols-4 gap-2">
+              {beds.map(b => {
+                const isAvailable = b.status === "available";
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => isAvailable && setQsBedId(b.id)}
+                    disabled={!isAvailable}
+                    className={`p-3 rounded-lg border-2 text-center transition-all ${
+                      !isAvailable
+                        ? "border-white/5 text-white/20 cursor-not-allowed bg-white/[0.02]"
+                        : qsBedId === b.id
+                          ? "border-cyan-400 bg-cyan-500/20 text-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.15)] cursor-pointer"
+                          : "border-white/10 text-white/70 hover:border-cyan-400/40 hover:bg-cyan-500/5 cursor-pointer"
+                    }`}
+                  >
+                    <p className="font-medium text-sm">{b.name}</p>
+                    {!isAvailable && (
+                      <p className="text-xs mt-1 opacity-40">{locale === "th" ? "ไม่ว่าง" : "Busy"}</p>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Payment Method — Green/Blue theme */}
+          <div className="mb-5 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+            <p className="text-emerald-300 text-sm font-medium mb-2 flex items-center gap-1.5">
+              <span className="text-base">💰</span>
+              {locale === "th" ? "ประเภทการรับเงิน" : "Payment Method"}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setQsPaymentMethod("cash")}
+                className={`p-3 rounded-lg border-2 text-center transition-all cursor-pointer ${
+                  qsPaymentMethod === "cash"
+                    ? "border-green-400 bg-green-500/20 shadow-[0_0_12px_rgba(74,222,128,0.15)]"
+                    : "border-white/10 hover:border-green-400/40 hover:bg-green-500/5"
+                }`}
+              >
+                <span className="text-2xl">💵</span>
+                <p className={`text-sm font-medium mt-1 ${qsPaymentMethod === "cash" ? "text-green-400" : "text-white/70"}`}>
+                  {locale === "th" ? "เงินสด" : "Cash"}
+                </p>
+              </button>
+              <button
+                onClick={() => setQsPaymentMethod("bank_transfer")}
+                className={`p-3 rounded-lg border-2 text-center transition-all cursor-pointer ${
+                  qsPaymentMethod === "bank_transfer"
+                    ? "border-blue-400 bg-blue-500/20 shadow-[0_0_12px_rgba(96,165,250,0.15)]"
+                    : "border-white/10 hover:border-blue-400/40 hover:bg-blue-500/5"
+                }`}
+              >
+                <span className="text-2xl">📱</span>
+                <p className={`text-sm font-medium mt-1 ${qsPaymentMethod === "bank_transfer" ? "text-blue-400" : "text-white/70"}`}>
+                  {locale === "th" ? "เงินโอน" : "Transfer"}
+                </p>
+              </button>
+            </div>
           </div>
 
           {/* Action Buttons */}
@@ -408,17 +435,13 @@ export default function StaffSessionPage() {
               variant="primary"
               className="flex-1"
               onClick={handleQuickStart}
-              disabled={!qsServiceId || !qsBedId || qsLoading}
+              disabled={!qsTherapistId || !qsServiceId || !qsBedId || qsLoading}
             >
-              {qsLoading
-                ? "..."
-                : locale === "th"
-                  ? "เริ่มงาน"
-                  : "Start"}
+              {qsLoading ? "..." : locale === "th" ? "เริ่มงาน" : "Start"}
             </Button>
             <Button
               variant="danger"
-              onClick={() => { setShowQuickStart(false); setQsServiceId(0); setQsBedId(0); setQsPaymentMethod("cash"); }}
+              onClick={() => { setShowQuickStart(false); setQsTherapistId(0); setQsServiceId(0); setQsBedId(0); setQsPaymentMethod("cash"); }}
             >
               {locale === "th" ? "ยกเลิก" : "Cancel"}
             </Button>
@@ -426,32 +449,33 @@ export default function StaffSessionPage() {
         </Card>
       )}
 
-      {/* Booking Cards */}
-      {myBookings.length === 0 && !showQuickStart ? (
+      {/* Booking Cards - All therapists */}
+      {todayBookings.length === 0 && !showQuickStart ? (
         <Card>
           <div className="text-center py-8">
             <p className="text-white/40 text-lg">{locale === "th" ? "ไม่มีรายการ" : "No bookings"}</p>
             <p className="text-white/20 text-sm mt-2">
-              {locale === "th" ? "รายการจองของคุณจะแสดงที่นี่" : "Your bookings will appear here"}
+              {locale === "th" ? "กดปุ่ม เริ่มงานใหม่ เพื่อเริ่มบริการ" : "Press Start New Session to begin"}
             </p>
           </div>
         </Card>
       ) : (
         <div className="space-y-4">
-          {myBookings.map((booking) => {
+          {todayBookings.map((booking) => {
             const config = statusConfig[booking.status] || statusConfig.booked;
             const service = services.find((s) => s.id === booking.serviceId);
+            const therapist = therapists.find((th) => th.id === booking.therapistId);
             const bed = booking.bedId ? beds.find((b) => b.id === booking.bedId) : null;
-            const isCheckinOpen = checkinBookingId === booking.id;
             const isThaiMassage = service ? service.name.th.includes("แผนไทย") : false;
             const bookingCommission = service ? getCommission(service.price, isThaiMassage) : 0;
 
             // Progress calculation for in_service
             const startTime = new Date(booking.startTime);
             const endTime = new Date(booking.endTime);
+            const currentTime = now || new Date();
             const totalDuration = endTime.getTime() - startTime.getTime();
-            const elapsed = Math.max(0, now.getTime() - startTime.getTime());
-            const remaining = Math.max(0, endTime.getTime() - now.getTime());
+            const elapsed = Math.max(0, currentTime.getTime() - startTime.getTime());
+            const remaining = Math.max(0, endTime.getTime() - currentTime.getTime());
             const progress = totalDuration > 0 ? Math.min(100, (elapsed / totalDuration) * 100) : 0;
             const elapsedMin = Math.floor(elapsed / 60000);
             const remainingMin = Math.ceil(remaining / 60000);
@@ -460,14 +484,19 @@ export default function StaffSessionPage() {
               <Card key={booking.id}>
                 {/* Header */}
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <h3 className="font-heading text-lg text-white">{booking.customerName}</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {therapist && (
+                      <span className="text-accent-gold font-medium text-sm bg-accent-gold/10 px-2 py-0.5 rounded-lg">
+                        {locale === "th" ? therapist.name.th : therapist.name.en}
+                      </span>
+                    )}
+                    <h3 className="font-heading text-base text-white">{booking.customerName}</h3>
                     <Badge variant={config.variant}>
                       {locale === "th" ? config.label.th : config.label.en}
                     </Badge>
                   </div>
                   {bed && (
-                    <span className="text-accent-gold font-medium text-sm bg-accent-gold/10 px-3 py-1 rounded-lg">
+                    <span className="text-white/70 font-medium text-xs bg-white/10 px-2 py-1 rounded-lg">
                       {bed.name}
                     </span>
                   )}
@@ -489,22 +518,10 @@ export default function StaffSessionPage() {
                       {endTime.toLocaleTimeString("th", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
-                  {!bed && booking.status === "booked" && (
-                    <div>
-                      <span className="text-white/50">{locale === "th" ? "ห้อง: " : "Room: "}</span>
-                      <span className="text-white/30 italic">{locale === "th" ? "รอเช็คอิน" : "Pending"}</span>
-                    </div>
-                  )}
-                  {booking.phone && (
-                    <div>
-                      <span className="text-white/50">{locale === "th" ? "โทร: " : "Phone: "}</span>
-                      <span className="text-white">{booking.phone}</span>
-                    </div>
-                  )}
                   {bookingCommission > 0 && (
                     <div>
                       <span className="text-white/50">{locale === "th" ? "ค่าคอม: " : "Commission: "}</span>
-                      <span className="text-emerald-400 font-medium">฿{bookingCommission}{isThaiMassage ? <span className="text-white/30 text-xs ml-1">({locale === "th" ? "นวดไทย ½" : "Thai ½"})</span> : null}</span>
+                      <span className="text-emerald-400 font-medium">฿{bookingCommission}</span>
                     </div>
                   )}
                 </div>
@@ -545,10 +562,15 @@ export default function StaffSessionPage() {
 
                 {/* Action Buttons */}
                 <div>
-                  {booking.status === "booked" && !isCheckinOpen && (
-                    <Button size="sm" variant="primary" className="w-full" onClick={() => handleCheckin(booking.id)}>
-                      {locale === "th" ? "เช็คอินลูกค้า + เลือกห้อง" : "Check-in + Select Room"}
-                    </Button>
+                  {booking.status === "booked" && (
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="primary" className="flex-1" onClick={() => handleCheckin(booking.id)} disabled={checkinLoading === booking.id}>
+                        {checkinLoading === booking.id ? "..." : locale === "th" ? "เช็คอิน + เริ่มบริการ" : "Check-in + Start Service"}
+                      </Button>
+                      <Button size="sm" variant="danger" onClick={() => handleCancelBooking(booking.id)}>
+                        {locale === "th" ? "ยกเลิก" : "Cancel"}
+                      </Button>
+                    </div>
                   )}
                   {booking.status === "in_service" && (
                     <Button size="sm" variant="danger" className="w-full" onClick={() => handleEndService(booking.id)}>
@@ -562,58 +584,6 @@ export default function StaffSessionPage() {
                   )}
                 </div>
 
-                {/* Check-in: Room Selection Panel */}
-                {isCheckinOpen && (
-                  <div className="mt-4 pt-4 border-t border-white/10">
-                    <p className="text-white/50 text-sm mb-3">
-                      {locale === "th" ? "เลือกห้องแล้วกดเริ่มบริการ" : "Select a room and start service"}
-                    </p>
-                    <div className="grid grid-cols-4 gap-2 mb-3">
-                      {beds.map((b) => {
-                        const isAvailable = b.status === "available";
-                        return (
-                          <button
-                            key={b.id}
-                            onClick={() => isAvailable && setCheckinBedId(b.id)}
-                            disabled={!isAvailable}
-                            className={`p-3 rounded-lg border text-center transition-all ${
-                              !isAvailable
-                                ? "border-white/5 text-white/20 cursor-not-allowed"
-                                : checkinBedId === b.id
-                                  ? "border-accent-gold bg-accent-gold/10 text-accent-gold cursor-pointer"
-                                  : "border-white/10 text-white/70 hover:border-white/30 cursor-pointer"
-                            }`}
-                          >
-                            <p className="font-medium text-sm">{b.name}</p>
-                            {!isAvailable && (
-                              <p className="text-xs mt-1 opacity-40">
-                                {locale === "th" ? "ไม่ว่าง" : "Occupied"}
-                              </p>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        className="flex-1"
-                        onClick={confirmCheckin}
-                        disabled={!checkinBedId}
-                      >
-                        {locale === "th" ? "เช็คอิน + เริ่มบริการ" : "Check-in + Start Service"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => { setCheckinBookingId(null); setCheckinBedId(0); }}
-                      >
-                        {locale === "th" ? "ยกเลิก" : "Cancel"}
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </Card>
             );
           })}
