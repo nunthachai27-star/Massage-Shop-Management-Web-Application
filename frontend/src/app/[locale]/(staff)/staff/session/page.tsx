@@ -107,14 +107,18 @@ export default function StaffSessionPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-complete: end service automatically if overtime > 30 minutes
+  // Auto-complete: end service automatically if overtime > 30 minutes (today only)
   useEffect(() => {
     const autoCompleteCheck = () => {
       const currentTime = new Date();
+      const todayDate = currentTime.toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
       setBookings((prev) => {
         const toComplete: number[] = [];
         const updated = prev.map((b) => {
           if (b.status !== "in_service") return b;
+          // Only auto-complete today's bookings
+          const bookingDate = new Date(b.startTime).toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+          if (bookingDate !== todayDate) return b;
           const endTime = new Date(b.endTime);
           const overtimeMs = currentTime.getTime() - endTime.getTime();
           if (overtimeMs > 30 * 60 * 1000) {
@@ -182,10 +186,16 @@ export default function StaffSessionPage() {
     const booking = bookings.find((b) => b.id === bookingId);
     if (!booking) return;
     setCheckinLoading(bookingId);
+    // Recalculate endTime based on service duration
+    const service = services.find((s) => s.id === booking.serviceId);
+    const nowIso = new Date().toISOString();
+    const newEndTime = service
+      ? new Date(Date.now() + service.duration * 60000).toISOString()
+      : booking.endTime;
     setBookings((prev) =>
       prev.map((b) =>
         b.id === bookingId
-          ? { ...b, status: "in_service" as const, startTime: new Date().toISOString() }
+          ? { ...b, status: "in_service" as const, startTime: nowIso, endTime: newEndTime }
           : b
       )
     );
