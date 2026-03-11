@@ -125,6 +125,31 @@ export class CommissionsService {
     return data || [];
   }
 
+  // Get commissions for a specific therapist (last 7 days)
+  async getByTherapist(therapistId: number) {
+    const client = this.supabase.getClient();
+
+    // Calculate commissions for today first
+    const today = new Date().toISOString().split("T")[0];
+    await this.calculateDaily(therapistId, today);
+
+    // Get last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    const fromDate = sevenDaysAgo.toISOString().split("T")[0];
+
+    const { data, error } = await client
+      .from("commissions")
+      .select("*")
+      .eq("therapist_id", therapistId)
+      .gte("date", fromDate)
+      .lte("date", today)
+      .order("date", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
   // Mark commission as paid
   async markPaid(id: number) {
     const client = this.supabase.getClient();

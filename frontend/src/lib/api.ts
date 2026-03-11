@@ -115,6 +115,7 @@ export const api = {
     const qs = date ? `?date=${date}` : "";
     return apiFetch<ApiRecord[]>(`/commissions${qs}`);
   },
+  getMyCommissions: () => apiFetch<ApiRecord[]>("/commissions/my"),
   markCommissionPaid: (id: number) =>
     apiFetch<ApiRecord>(`/commissions/${id}/paid`, { method: "PATCH" }),
   markCommissionUnpaid: (id: number) =>

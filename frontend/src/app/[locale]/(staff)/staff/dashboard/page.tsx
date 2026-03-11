@@ -26,6 +26,7 @@ export default function StaffDashboardPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [therapists, setTherapists] = useState<Therapist[]>([]);
+  const [commissions, setCommissions] = useState<{ date: string; total_sessions: number; total_revenue: number; total_commission: number; status: string }[]>([]);
 
   useEffect(() => {
     const fetchData = () => {
@@ -40,6 +41,8 @@ export default function StaffDashboardPage() {
         setServices(rawServices.map(transformService));
         setTherapists(rawTherapists.map(transformTherapist));
       }).catch(() => {});
+
+      api.getMyCommissions().then((data: any) => setCommissions(data || [])).catch(() => {});
     };
 
     fetchData();
@@ -47,8 +50,58 @@ export default function StaffDashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString("th-TH", { weekday: "short", day: "numeric", month: "short" });
+  };
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const todayCommission = commissions.find((c) => c.date === todayStr);
+
   return (
     <div>
+      {/* Commission Summary */}
+      {commissions.length > 0 && (
+        <div className="mb-6">
+          <h2 className="font-heading text-xl text-white mb-3">
+            {locale === "th" ? "ค่าคอมมิชชั่นของฉัน" : "My Commissions"}
+          </h2>
+
+          {/* Today highlight */}
+          {todayCommission && (
+            <Card className="mb-4 border border-emerald-500/30 bg-emerald-500/10">
+              <div className="flex items-center justify-between">
+                <span className="text-emerald-400 font-heading text-lg">
+                  {locale === "th" ? "วันนี้" : "Today"}
+                </span>
+                <span className="text-emerald-400 font-heading text-2xl">
+                  {todayCommission.total_commission.toLocaleString()} ฿
+                </span>
+              </div>
+              <div className="flex justify-between text-sm text-white/50 mt-1">
+                <span>{todayCommission.total_sessions} {locale === "th" ? "เคส" : "sessions"}</span>
+                <span>{locale === "th" ? "รายได้" : "Revenue"} {todayCommission.total_revenue.toLocaleString()} ฿</span>
+              </div>
+            </Card>
+          )}
+
+          {/* Last 7 days */}
+          <div className="grid grid-cols-1 gap-2">
+            {commissions.filter((c) => c.date !== todayStr && c.total_sessions > 0).map((c) => (
+              <Card key={c.date} className="!py-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-white/70 text-sm">{formatDate(c.date)}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-white/50 text-sm">{c.total_sessions} {locale === "th" ? "เคส" : "sessions"}</span>
+                    <span className="text-white font-medium">{c.total_commission.toLocaleString()} ฿</span>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       <h1 className="font-heading text-xl md:text-2xl text-white mb-4 md:mb-6">{t("staff.beds")}</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {beds.map((bed) => {
