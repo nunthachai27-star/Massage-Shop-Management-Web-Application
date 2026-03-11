@@ -107,32 +107,32 @@ export default function StaffSessionPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-complete: end service automatically if overtime > 30 minutes (today only)
+  // Auto-checkout: completed → checkout automatically after 30 minutes
   useEffect(() => {
-    const autoCompleteCheck = () => {
+    const autoCheckoutCheck = () => {
       const currentTime = new Date();
       const todayDate = currentTime.toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
       setBookings((prev) => {
-        const toComplete: number[] = [];
+        const toCheckout: number[] = [];
         const updated = prev.map((b) => {
-          if (b.status !== "in_service") return b;
-          // Only auto-complete today's bookings
+          if (b.status !== "completed") return b;
+          // Only auto-checkout today's bookings
           const bookingDate = new Date(b.startTime).toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
           if (bookingDate !== todayDate) return b;
           const endTime = new Date(b.endTime);
-          const overtimeMs = currentTime.getTime() - endTime.getTime();
-          if (overtimeMs > 30 * 60 * 1000) {
-            toComplete.push(b.id);
-            return { ...b, status: "completed" as const };
+          const sinceEndMs = currentTime.getTime() - endTime.getTime();
+          if (sinceEndMs > 30 * 60 * 1000) {
+            toCheckout.push(b.id);
+            return { ...b, status: "checkout" as const };
           }
           return b;
         });
         // Fire API calls outside of setState
-        if (toComplete.length > 0) {
+        if (toCheckout.length > 0) {
           setTimeout(() => {
-            for (const id of toComplete) {
+            for (const id of toCheckout) {
               const booking = prev.find((b) => b.id === id);
-              api.updateBookingStatus(id, "completed").catch(() => {});
+              api.updateBookingStatus(id, "checkout").catch(() => {});
               if (booking?.bedId) {
                 setBeds((beds) =>
                   beds.map((bed) =>
@@ -148,7 +148,7 @@ export default function StaffSessionPage() {
         return updated;
       });
     };
-    const interval = setInterval(autoCompleteCheck, 10000);
+    const interval = setInterval(autoCheckoutCheck, 10000);
     return () => clearInterval(interval);
   }, []);
 
