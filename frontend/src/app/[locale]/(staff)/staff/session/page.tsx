@@ -142,9 +142,10 @@ export default function StaffSessionPage() {
     }).catch(() => {});
   }, []);
 
-  // All today's bookings, exclude checkout and cancelled
+  // Today's bookings for logged-in therapist only, exclude checkout and cancelled
   const todayBookings = bookings
     .filter((b) => {
+      if (myTherapistId && b.therapistId !== myTherapistId) return false;
       const today = new Date();
       const bd = new Date(b.startTime);
       return bd.getFullYear() === today.getFullYear() &&
