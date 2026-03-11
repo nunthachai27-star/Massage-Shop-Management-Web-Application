@@ -1,6 +1,11 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service";
 
+// Get today's date in Thailand timezone (UTC+7)
+function getThaiDate(d: Date = new Date()): string {
+  return d.toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" }); // YYYY-MM-DD
+}
+
 // Commission calculation:
 // Thai massage: 50% of price (400→200, 600→300, 800→400, 1000→500)
 // Aroma/other: 600→100, 800→200, 1000→250
@@ -29,8 +34,8 @@ export class CommissionsService {
       .select("*, services(*)")
       .eq("therapist_id", therapistId)
       .not("status", "in", '("booked","checked_in","cancelled")')
-      .gte("start_time", `${date}T00:00:00`)
-      .lte("start_time", `${date}T23:59:59`);
+      .gte("start_time", `${date}T00:00:00+07:00`)
+      .lte("start_time", `${date}T23:59:59+07:00`);
 
     let totalSessions = 0;
     let totalRevenue = 0;
@@ -130,13 +135,13 @@ export class CommissionsService {
     const client = this.supabase.getClient();
 
     // Calculate commissions for today first
-    const today = new Date().toISOString().split("T")[0];
+    const today = getThaiDate();
     await this.calculateDaily(therapistId, today);
 
     // Get last 7 days
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-    const fromDate = sevenDaysAgo.toISOString().split("T")[0];
+    const fromDate = getThaiDate(sevenDaysAgo);
 
     const { data, error } = await client
       .from("commissions")

@@ -58,12 +58,20 @@ export default function StaffSessionPage() {
   // Check-in state
   const [checkinLoading, setCheckinLoading] = useState<number | null>(null);
 
-  // Accumulated commission from API
+  // Commission data from API (last 7 days)
   const [accumulatedCommission, setAccumulatedCommission] = useState(0);
+  const [todayCommissionFromApi, setTodayCommissionFromApi] = useState(0);
+  const [todaySessionsFromApi, setTodaySessionsFromApi] = useState(0);
   useEffect(() => {
     api.getMyCommissions().then((data: any) => {
-      const total = (data || []).reduce((sum: number, c: any) => sum + (c.total_commission || 0), 0);
+      const records = data || [];
+      const total = records.reduce((sum: number, c: any) => sum + (c.total_commission || 0), 0);
       setAccumulatedCommission(total);
+      // Find today's record (Thai timezone)
+      const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+      const todayRecord = records.find((c: any) => c.date === todayStr);
+      setTodayCommissionFromApi(todayRecord?.total_commission || 0);
+      setTodaySessionsFromApi(todayRecord?.total_sessions || 0);
     }).catch(() => {});
   }, []);
 
@@ -110,24 +118,6 @@ export default function StaffSessionPage() {
       if (oa !== ob) return oa - ob;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-
-  // Commission summary for logged-in therapist only (today's bookings)
-  const myCommissionBookings = bookings.filter((b) => {
-    if (!myTherapistId) return false;
-    if (b.therapistId !== myTherapistId) return false;
-    if (b.status !== "in_service" && b.status !== "completed" && b.status !== "checkout") return false;
-    const today = new Date();
-    const bd = new Date(b.startTime);
-    return bd.getFullYear() === today.getFullYear() &&
-      bd.getMonth() === today.getMonth() &&
-      bd.getDate() === today.getDate();
-  });
-  const totalCommission = myCommissionBookings.reduce((sum, b) => {
-    const service = services.find((s) => s.id === b.serviceId);
-    if (!service) return sum;
-    const isThaiMassage = service.name.th.includes("นวดไทย");
-    return sum + getCommission(service.price, isThaiMassage);
-  }, 0);
 
   // Check-in — room is already assigned from booking, just start service
   const handleCheckin = (bookingId: number) => {
@@ -309,10 +299,10 @@ export default function StaffSessionPage() {
               💰 {locale === "th" ? "ค่าคอมวันนี้" : "Commission Today"}
             </p>
             <p className="text-2xl md:text-4xl font-extrabold text-emerald-400 font-mono leading-none drop-shadow-[0_0_20px_rgba(52,211,153,0.3)]">
-              ฿{totalCommission.toLocaleString()}
+              ฿{todayCommissionFromApi.toLocaleString()}
             </p>
             <p className="text-emerald-300/50 text-xs mt-2">
-              {myCommissionBookings.length} {locale === "th" ? "รายการ" : "sessions"}
+              {todaySessionsFromApi} {locale === "th" ? "รายการ" : "sessions"}
             </p>
           </div>
         </div>
