@@ -2,13 +2,20 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service";
 import { CreateBookingDto } from "./dto/create-booking.dto";
+import { LineNotifyService } from "../line-notify/line-notify.service";
 
 @Injectable()
 export class BookingsService {
-  constructor(private supabase: SupabaseService) {}
+  private readonly logger = new Logger(BookingsService.name);
+
+  constructor(
+    private supabase: SupabaseService,
+    private lineNotify: LineNotifyService,
+  ) {}
 
   async findAll(status?: string, date?: string) {
     let query = this.supabase
@@ -174,6 +181,26 @@ export class BookingsService {
           .from("therapists")
           .update({ status: "busy" })
           .eq("id", booking.therapist_id);
+
+        // Send Line notification for service start
+        try {
+          const therapistName = updated.therapists?.name_th || updated.therapists?.name_en || "-";
+          const serviceName = updated.services?.name_th || updated.services?.name_en || "-";
+          const bedName = updated.beds?.name || (effectiveBedId ? `ห้อง ${effectiveBedId}` : "-");
+          const { data: payment } = await client
+            .from("payments")
+            .select("method, amount")
+            .eq("booking_id", id)
+            .maybeSingle();
+          const methodMap: Record<string, string> = { cash: "เงินสด", transfer: "โอน", credit_card: "บัตรเครดิต" };
+          const payMethod = payment ? (methodMap[payment.method] || payment.method) : "-";
+          const amount = payment ? `${payment.amount} ฿` : "-";
+          await this.lineNotify.send(
+            `🔵 เริ่มบริการ\n👩‍⚕️ ${therapistName}\n💆 ${serviceName}\n🛏️ ${bedName}\n💳 ${payMethod}\n💰 ${amount}`,
+          );
+        } catch (e) {
+          this.logger.warn(`Failed to send Line in_service notification: ${e.message}`);
+        }
         break;
       case "completed":
         if (effectiveBedId) {
