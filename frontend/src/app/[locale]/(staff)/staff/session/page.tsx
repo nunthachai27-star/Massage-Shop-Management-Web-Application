@@ -90,6 +90,47 @@ export default function StaffSessionPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Auto-complete: end service automatically if overtime > 30 minutes
+  useEffect(() => {
+    const autoCompleteCheck = () => {
+      const currentTime = new Date();
+      setBookings((prev) => {
+        const toComplete: number[] = [];
+        const updated = prev.map((b) => {
+          if (b.status !== "in_service") return b;
+          const endTime = new Date(b.endTime);
+          const overtimeMs = currentTime.getTime() - endTime.getTime();
+          if (overtimeMs > 30 * 60 * 1000) {
+            toComplete.push(b.id);
+            return { ...b, status: "completed" as const };
+          }
+          return b;
+        });
+        // Fire API calls outside of setState
+        if (toComplete.length > 0) {
+          setTimeout(() => {
+            for (const id of toComplete) {
+              const booking = prev.find((b) => b.id === id);
+              api.updateBookingStatus(id, "completed").catch(() => {});
+              if (booking?.bedId) {
+                setBeds((beds) =>
+                  beds.map((bed) =>
+                    bed.id === booking.bedId
+                      ? { ...bed, status: "available" as const, currentBookingId: undefined }
+                      : bed
+                  )
+                );
+              }
+            }
+          }, 0);
+        }
+        return updated;
+      });
+    };
+    const interval = setInterval(autoCompleteCheck, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     Promise.all([
       api.getBookings(), api.getServices(), api.getTherapists(), api.getBeds(),
