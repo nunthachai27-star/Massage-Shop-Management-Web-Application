@@ -68,7 +68,7 @@ export default function StaffSessionPage() {
   const [myTherapistId, setMyTherapistId] = useState<number | null>(null);
   useEffect(() => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("authToken");
       if (token) {
         const payload = JSON.parse(atob(token.split(".")[1]));
         if (payload.role === "therapist") setMyTherapistId(payload.id);
