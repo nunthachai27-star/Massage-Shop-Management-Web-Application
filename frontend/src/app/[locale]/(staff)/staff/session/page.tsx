@@ -64,13 +64,24 @@ export default function StaffSessionPage() {
   const [now, setNow] = useState<Date | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  // Get logged-in therapist ID from JWT
+  // Get logged-in therapist ID from localStorage
   const [myTherapistId, setMyTherapistId] = useState<number | null>(null);
   useEffect(() => {
     try {
+      // First try loggedInTherapist (set at login)
+      const stored = localStorage.getItem("loggedInTherapist");
+      if (stored) {
+        const therapist = JSON.parse(stored);
+        if (therapist?.id) {
+          setMyTherapistId(therapist.id);
+          return;
+        }
+      }
+      // Fallback: decode JWT
       const token = localStorage.getItem("authToken");
       if (token) {
-        const payload = JSON.parse(atob(token.split(".")[1]));
+        const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+        const payload = JSON.parse(atob(base64));
         if (payload.role === "therapist") setMyTherapistId(payload.id);
       }
     } catch {}
