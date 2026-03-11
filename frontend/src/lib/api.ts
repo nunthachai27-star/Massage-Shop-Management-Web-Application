@@ -120,6 +120,13 @@ export const api = {
   markCommissionUnpaid: (id: number) =>
     apiFetch<ApiRecord>(`/commissions/${id}/unpaid`, { method: "PATCH" }),
 
+  // Line Messaging
+  sendLineMessage: (message: string) =>
+    apiFetch<ApiRecord>("/line-notify/send", {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    }),
+
   // Auth
   pinLogin: (pin: string) =>
     apiFetch<ApiRecord>("/auth/pin-login", {

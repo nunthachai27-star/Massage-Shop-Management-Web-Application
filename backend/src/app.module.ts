@@ -13,6 +13,7 @@ import { AttendanceModule } from "./attendance/attendance.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
 import { AuthModule } from "./auth/auth.module";
 import { CommissionsModule } from "./commissions/commissions.module";
+import { LineNotifyModule } from "./line-notify/line-notify.module";
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { CommissionsModule } from "./commissions/commissions.module";
     DashboardModule,
     AuthModule,
     CommissionsModule,
+    LineNotifyModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
