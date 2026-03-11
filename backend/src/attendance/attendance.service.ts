@@ -1,9 +1,15 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, Logger } from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service";
+import { LineNotifyService } from "../line-notify/line-notify.service";
 
 @Injectable()
 export class AttendanceService {
-  constructor(private supabase: SupabaseService) {}
+  private readonly logger = new Logger(AttendanceService.name);
+
+  constructor(
+    private supabase: SupabaseService,
+    private lineNotify: LineNotifyService,
+  ) {}
 
   async getToday() {
     const today = new Date().toISOString().split("T")[0];
@@ -33,6 +39,19 @@ export class AttendanceService {
       .from("therapists")
       .update({ status: "available" })
       .eq("id", therapistId);
+
+    // Send Line notification
+    try {
+      const name = data.therapists?.name_th || data.therapists?.name_en || `ID ${therapistId}`;
+      const time = new Date(data.check_in).toLocaleTimeString("th-TH", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Asia/Bangkok",
+      });
+      await this.lineNotify.send(`🟢 ${name} เข้างานเวลา ${time} น.`);
+    } catch (e) {
+      this.logger.warn(`Failed to send Line check-in notification: ${e.message}`);
+    }
 
     return data;
   }
