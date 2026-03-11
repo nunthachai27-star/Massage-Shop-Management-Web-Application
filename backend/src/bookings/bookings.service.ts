@@ -195,8 +195,11 @@ export class BookingsService {
           const methodMap: Record<string, string> = { cash: "เงินสด", transfer: "โอน", credit_card: "บัตรเครดิต" };
           const payMethod = payment ? (methodMap[payment.method] || payment.method) : "-";
           const amount = payment ? `${payment.amount} ฿` : "-";
+          const fmt = (iso: string) => new Date(iso).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" });
+          const startTime = updated.start_time ? fmt(updated.start_time) : "-";
+          const endTime = updated.end_time ? fmt(updated.end_time) : "-";
           await this.lineNotify.send(
-            `🔵 เริ่มบริการ\n👩‍⚕️ ${therapistName}\n💆 ${serviceName}\n🛏️ ${bedName}\n💳 ${payMethod}\n💰 ${amount}`,
+            `🔵 เริ่มบริการ\n👩‍⚕️ ${therapistName}\n💆 ${serviceName}\n🛏️ ${bedName}\n⏰ ${startTime} - ${endTime} น.\n💳 ${payMethod}\n💰 ${amount}`,
           );
         } catch (e) {
           this.logger.warn(`Failed to send Line in_service notification: ${e.message}`);
