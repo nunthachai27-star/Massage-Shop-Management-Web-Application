@@ -438,28 +438,30 @@ export default function StaffSessionPage() {
             {locale === "th" ? "เริ่มงานใหม่" : "Start New Session"}
           </h3>
 
-          {/* Therapist Selection — Purple theme */}
-          <div className="mb-5 p-3 rounded-xl bg-purple-500/5 border border-purple-500/10">
-            <p className="text-purple-300 text-sm font-medium mb-2 flex items-center gap-1.5">
-              <span className="text-base">👤</span>
-              {locale === "th" ? "เลือกหมอนวด" : "Select Therapist"}
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {therapists.map(th => (
-                <button
-                  key={th.id}
-                  onClick={() => setQsTherapistId(th.id)}
-                  className={`p-3 rounded-lg border-2 text-center transition-all cursor-pointer ${
-                    qsTherapistId === th.id
-                      ? "border-purple-400 bg-purple-500/20 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.15)]"
-                      : "border-white/10 text-white/70 hover:border-purple-400/40 hover:bg-purple-500/5"
-                  }`}
-                >
-                  <p className="font-medium text-sm">{locale === "th" ? th.name.th : th.name.en}</p>
-                </button>
-              ))}
+          {/* Therapist Selection — only show if not logged in as therapist */}
+          {!myTherapistId && (
+            <div className="mb-5 p-3 rounded-xl bg-purple-500/5 border border-purple-500/10">
+              <p className="text-purple-300 text-sm font-medium mb-2 flex items-center gap-1.5">
+                <span className="text-base">👤</span>
+                {locale === "th" ? "เลือกหมอนวด" : "Select Therapist"}
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {therapists.map(th => (
+                  <button
+                    key={th.id}
+                    onClick={() => setQsTherapistId(th.id)}
+                    className={`p-3 rounded-lg border-2 text-center transition-all cursor-pointer ${
+                      qsTherapistId === th.id
+                        ? "border-purple-400 bg-purple-500/20 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.15)]"
+                        : "border-white/10 text-white/70 hover:border-purple-400/40 hover:bg-purple-500/5"
+                    }`}
+                  >
+                    <p className="font-medium text-sm">{locale === "th" ? th.name.th : th.name.en}</p>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Service Selection — Amber/Gold theme */}
           <div className="mb-5 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10">
@@ -557,39 +559,35 @@ export default function StaffSessionPage() {
             </div>
           </div>
 
-          {/* Customer Gender — Rose/Blue theme */}
+          {/* Customer Gender — compact toggle */}
           <div className="mb-5 p-3 rounded-xl bg-rose-500/5 border border-rose-500/10">
-            <p className="text-rose-300 text-sm font-medium mb-2 flex items-center gap-1.5">
-              <span className="text-base">👤</span>
-              {locale === "th" ? "เพศลูกค้า" : "Customer Gender"}
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setQsCustomerGender("male")}
-                className={`p-3 rounded-lg border-2 text-center transition-all cursor-pointer ${
-                  qsCustomerGender === "male"
-                    ? "border-blue-400 bg-blue-500/20 shadow-[0_0_12px_rgba(96,165,250,0.15)]"
-                    : "border-white/10 hover:border-blue-400/40 hover:bg-blue-500/5"
-                }`}
-              >
-                <span className="text-2xl">👨</span>
-                <p className={`text-sm font-medium mt-1 ${qsCustomerGender === "male" ? "text-blue-400" : "text-white/70"}`}>
-                  {locale === "th" ? "ชาย" : "Male"}
-                </p>
-              </button>
-              <button
-                onClick={() => setQsCustomerGender("female")}
-                className={`p-3 rounded-lg border-2 text-center transition-all cursor-pointer ${
-                  qsCustomerGender === "female"
-                    ? "border-pink-400 bg-pink-500/20 shadow-[0_0_12px_rgba(236,72,153,0.15)]"
-                    : "border-white/10 hover:border-pink-400/40 hover:bg-pink-500/5"
-                }`}
-              >
-                <span className="text-2xl">👩</span>
-                <p className={`text-sm font-medium mt-1 ${qsCustomerGender === "female" ? "text-pink-400" : "text-white/70"}`}>
-                  {locale === "th" ? "หญิง" : "Female"}
-                </p>
-              </button>
+            <div className="flex items-center justify-between">
+              <p className="text-rose-300 text-sm font-medium flex items-center gap-1.5">
+                <span className="text-base">👤</span>
+                {locale === "th" ? "เพศลูกค้า" : "Gender"}
+              </p>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setQsCustomerGender("male")}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                    qsCustomerGender === "male"
+                      ? "bg-blue-500/20 text-blue-400 border border-blue-400/50"
+                      : "text-white/40 border border-white/10 hover:border-white/30"
+                  }`}
+                >
+                  👨 {locale === "th" ? "ชาย" : "M"}
+                </button>
+                <button
+                  onClick={() => setQsCustomerGender("female")}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                    qsCustomerGender === "female"
+                      ? "bg-pink-500/20 text-pink-400 border border-pink-400/50"
+                      : "text-white/40 border border-white/10 hover:border-white/30"
+                  }`}
+                >
+                  👩 {locale === "th" ? "หญิง" : "F"}
+                </button>
+              </div>
             </div>
           </div>
 
