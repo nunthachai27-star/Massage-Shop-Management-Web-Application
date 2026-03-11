@@ -5,8 +5,9 @@ import { useTranslations, useLocale } from "next-intl";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { therapists as mockTherapists, type Therapist } from "@/data/therapists";
+import { type Therapist } from "@/data/therapists";
 import { api } from "@/lib/api";
+import { transformTherapist } from "@/lib/transform";
 
 interface AttendanceRecord {
   id?: number;
@@ -37,6 +38,7 @@ export default function AttendancePage() {
   const t = useTranslations();
   const locale = useLocale();
   const [therapist, setTherapist] = useState<Therapist | null>(null);
+  const [allTherapists, setAllTherapists] = useState<Therapist[]>([]);
   const [mounted, setMounted] = useState(false);
   const [record, setRecord] = useState<AttendanceRecord>({ status: "not_checked_in" });
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -94,6 +96,9 @@ export default function AttendancePage() {
     const stored = localStorage.getItem("loggedInTherapist");
     if (stored) setTherapist(JSON.parse(stored));
     setMounted(true);
+    api.getTherapists().then((data) => {
+      setAllTherapists(data.map(transformTherapist));
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -359,7 +364,7 @@ export default function AttendancePage() {
           {locale === "th" ? "สรุปเวลาทั้งร้าน" : "All Staff Attendance"}
         </h2>
         <div className="space-y-2">
-          {mockTherapists.map((th) => {
+          {allTherapists.map((th) => {
             const rec = allRecords[th.id];
             const name = locale === "th" ? th.name.th : th.name.en;
             const isMe = therapist && th.id === therapist.id;
