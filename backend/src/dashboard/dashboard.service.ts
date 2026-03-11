@@ -158,6 +158,122 @@ export class DashboardService {
     };
   }
 
+  async getReport(from: string, to: string) {
+    const client = this.supabase.getClient();
+
+    // 1. Get all bookings in date range with service, therapist, payment data
+    const { data: bookings } = await client
+      .from("bookings")
+      .select("*, services(*), therapists(id, name_th, name_en), payments(amount, method, status)")
+      .gte("start_time", `${from}T00:00:00+07:00`)
+      .lte("start_time", `${to}T23:59:59+07:00`)
+      .not("status", "eq", "cancelled")
+      .order("start_time", { ascending: true });
+
+    // 2. Summary
+    let totalRevenue = 0;
+    let totalCash = 0;
+    let totalTransfer = 0;
+    let totalCustomers = bookings?.length || 0;
+
+    // 3. Service breakdown map
+    const serviceMap = new Map<number, { name_th: string; name_en: string; count: number; revenue: number; duration: number }>();
+    // 4. Therapist breakdown map
+    const therapistMap = new Map<number, { name_th: string; name_en: string; sessions: number; revenue: number; commission: number }>();
+    // 5. Daily breakdown map
+    const dailyMap = new Map<string, { date: string; revenue: number; customers: number; cash: number; transfer: number }>();
+
+    // Commission helper (same logic as commissions.service.ts)
+    const calcCommission = (price: number, isThaiMassage: boolean, serviceName: string, customerGender?: string): number => {
+      if (customerGender === "female") return Math.round(price / 2);
+      if (isThaiMassage) return Math.round(price / 2);
+      if (price === 0 && serviceName.includes("ฟรี")) return 100;
+      if (price >= 1000) return 250;
+      if (price >= 800) return 200;
+      if (price >= 600) return 100;
+      return 0;
+    };
+
+    let totalCommission = 0;
+
+    for (const b of bookings || []) {
+      const service = b.services;
+      const therapist = b.therapists;
+      const payment = b.payments?.[0];
+      const amount = payment ? Number(payment.amount) : 0;
+      const method = payment?.method || "cash";
+
+      totalRevenue += amount;
+      if (method === "cash") totalCash += amount;
+      if (method === "bank_transfer") totalTransfer += amount;
+
+      // Commission
+      const price = service ? Number(service.price) : 0;
+      const nameTh = service?.name_th || "";
+      const isThaiMassage = nameTh.includes("นวดไทย");
+      const commission = calcCommission(price, isThaiMassage, nameTh, b.customer_gender);
+      totalCommission += commission;
+
+      // Service breakdown
+      if (service) {
+        const existing = serviceMap.get(service.id) || {
+          name_th: service.name_th,
+          name_en: service.name_en,
+          count: 0,
+          revenue: 0,
+          duration: service.duration,
+        };
+        existing.count++;
+        existing.revenue += amount;
+        serviceMap.set(service.id, existing);
+      }
+
+      // Therapist breakdown
+      if (therapist) {
+        const existing = therapistMap.get(therapist.id) || {
+          name_th: therapist.name_th,
+          name_en: therapist.name_en,
+          sessions: 0,
+          revenue: 0,
+          commission: 0,
+        };
+        existing.sessions++;
+        existing.revenue += amount;
+        existing.commission += commission;
+        therapistMap.set(therapist.id, existing);
+      }
+
+      // Daily breakdown
+      const bookingDate = new Date(b.start_time).toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+      const dayExisting = dailyMap.get(bookingDate) || {
+        date: bookingDate,
+        revenue: 0,
+        customers: 0,
+        cash: 0,
+        transfer: 0,
+      };
+      dayExisting.revenue += amount;
+      dayExisting.customers++;
+      if (method === "cash") dayExisting.cash += amount;
+      if (method === "bank_transfer") dayExisting.transfer += amount;
+      dailyMap.set(bookingDate, dayExisting);
+    }
+
+    return {
+      summary: {
+        totalRevenue,
+        totalCash,
+        totalTransfer,
+        totalCommission,
+        totalCustomers,
+        netProfit: totalRevenue - totalCommission,
+      },
+      serviceBreakdown: Array.from(serviceMap.values()).sort((a, b) => b.revenue - a.revenue),
+      therapistBreakdown: Array.from(therapistMap.values()).sort((a, b) => b.revenue - a.revenue),
+      dailyBreakdown: Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date)),
+    };
+  }
+
   async getTherapistPerformance(date?: string) {
     const client = this.supabase.getClient();
     const targetDate = date || getThaiDate();

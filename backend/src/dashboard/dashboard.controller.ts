@@ -24,6 +24,11 @@ export class DashboardController {
     return this.dashboardService.getMonthlyRevenue();
   }
 
+  @Get("report")
+  getReport(@Query("from") from: string, @Query("to") to: string) {
+    return this.dashboardService.getReport(from, to);
+  }
+
   @Get("therapists")
   getTherapistPerformance(@Query("date") date?: string) {
     return this.dashboardService.getTherapistPerformance(date);

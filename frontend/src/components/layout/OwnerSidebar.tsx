@@ -6,8 +6,9 @@ import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { APP_VERSION } from "@/lib/version";
 
 const navItems = [
-  { href: "/owner/dashboard", labelKey: "owner.dashboard", shortLabel: { th: "แดชบอร์ด", en: "Dashboard" }, icon: "📊" },
+  { href: "/owner/dashboard", labelKey: "owner.dashboard", shortLabel: { th: "แดชบอร์ด", en: "Home" }, icon: "📊" },
   { href: "/owner/bookings", labelKey: "staff.bookings", shortLabel: { th: "จอง", en: "Book" }, icon: "📋" },
+  { href: "/owner/reports", labelKey: "owner.reports", shortLabel: { th: "รายงาน", en: "Report" }, icon: "📈" },
   { href: "/owner/therapists", labelKey: "owner.therapistPerformance", shortLabel: { th: "ผลงาน", en: "Perform" }, icon: "👥" },
   { href: "/owner/manage-therapists", labelKey: "owner.manageTherapists", shortLabel: { th: "พนักงาน", en: "Staff" }, icon: "🩺" },
   { href: "/owner/services", labelKey: "owner.manageServices", shortLabel: { th: "บริการ", en: "Service" }, icon: "💆" },
@@ -59,7 +60,7 @@ export function OwnerSidebar() {
 
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-primary-dark/95 backdrop-blur-sm border-t border-accent-gold/20">
-        <div className="grid grid-cols-5 py-1 px-0.5">
+        <div className="grid grid-cols-6 py-1 px-0.5">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (

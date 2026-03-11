@@ -104,6 +104,8 @@ export const api = {
   getMonthlyRevenue: () => apiFetch<ApiRecord>("/dashboard/monthly"),
   getTherapistPerformance: (date?: string) =>
     apiFetch<ApiRecord[]>(`/dashboard/therapists${date ? `?date=${date}` : ""}`),
+  getReport: (from: string, to: string) =>
+    apiFetch<ApiRecord>(`/dashboard/report?from=${from}&to=${to}`),
 
   // Customers
   getCustomers: (search?: string) => {
