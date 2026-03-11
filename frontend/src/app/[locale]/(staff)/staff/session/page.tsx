@@ -146,10 +146,9 @@ export default function StaffSessionPage() {
     }).catch(() => {});
   }, []);
 
-  // Today's bookings for logged-in therapist only, exclude checkout and cancelled
+  // Today's bookings — show all, highlight logged-in therapist's bookings
   const todayBookings = bookings
     .filter((b) => {
-      if (myTherapistId && b.therapistId !== myTherapistId) return false;
       const today = new Date();
       const bd = new Date(b.startTime);
       return bd.getFullYear() === today.getFullYear() &&
@@ -552,6 +551,7 @@ export default function StaffSessionPage() {
             const bed = booking.bedId ? beds.find((b) => b.id === booking.bedId) : null;
             const isThaiMassage = service ? service.name.th.includes("นวดไทย") : false;
             const bookingCommission = service ? getCommission(service.price, isThaiMassage, service.name.th) : 0;
+            const isMyBooking = myTherapistId != null && booking.therapistId === myTherapistId;
 
             // Progress calculation for in_service
             const startTime = new Date(booking.startTime);
@@ -565,12 +565,17 @@ export default function StaffSessionPage() {
             const remainingMin = Math.ceil(remaining / 60000);
 
             return (
-              <Card key={booking.id}>
+              <Card key={booking.id} className={isMyBooking ? "!border-accent-gold/50 !bg-gradient-to-br !from-amber-900/30 !to-surface-card ring-1 ring-accent-gold/20" : ""}>
                 {/* Header */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 flex-wrap">
+                    {isMyBooking && (
+                      <span className="text-amber-900 font-bold text-xs bg-accent-gold px-1.5 py-0.5 rounded">
+                        {locale === "th" ? "งานฉัน" : "MY"}
+                      </span>
+                    )}
                     {therapist && (
-                      <span className="text-accent-gold font-medium text-sm bg-accent-gold/10 px-2 py-0.5 rounded-lg">
+                      <span className={`font-medium text-sm px-2 py-0.5 rounded-lg ${isMyBooking ? "text-accent-gold bg-accent-gold/20" : "text-accent-gold bg-accent-gold/10"}`}>
                         {locale === "th" ? therapist.name.th : therapist.name.en}
                       </span>
                     )}
