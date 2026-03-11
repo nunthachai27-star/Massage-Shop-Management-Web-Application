@@ -363,75 +363,78 @@ export default function StaffSessionPage() {
         </div>
       </div>
 
-      {/* Commission Summary - 2 boxes */}
-      <div className="grid grid-cols-2 gap-3 mb-4 md:mb-6">
-        {/* Accumulated commission box */}
-        <div className="relative rounded-2xl overflow-hidden border-2 border-amber-400/30 bg-gradient-to-br from-amber-900/40 via-amber-800/20 to-surface-card p-4 md:p-5 text-center">
-          <div className="absolute inset-0 bg-gradient-to-t from-amber-500/10 to-transparent pointer-events-none" />
-          <div className="relative">
-            <p className="text-amber-300/70 text-xs font-medium tracking-wide mb-1">
-              💰 {locale === "th" ? "ค่าคอมรวม" : "Total Commission"}
-            </p>
-            <p className="text-2xl md:text-4xl font-extrabold text-amber-400 font-mono leading-none">
-              ฿{accumulatedCommission.toLocaleString()}
-            </p>
-            <p className="text-amber-300/50 text-xs mt-2">
-              {locale === "th" ? "7 วันล่าสุด" : "Last 7 days"}
-            </p>
-          </div>
-        </div>
-
-        {/* Commission box */}
-        <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-400/30 bg-gradient-to-br from-emerald-900/40 via-emerald-800/20 to-surface-card p-4 md:p-5 text-center">
-          <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent pointer-events-none" />
-          <div className="relative">
-            <p className="text-emerald-300/70 text-xs font-medium tracking-wide mb-1">
-              💰 {locale === "th" ? "ค่าคอมวันนี้" : "Commission Today"}
-            </p>
-            <p className="text-2xl md:text-4xl font-extrabold text-emerald-400 font-mono leading-none drop-shadow-[0_0_20px_rgba(52,211,153,0.3)]">
-              ฿{todayCommissionFromApi.toLocaleString()}
-            </p>
-            <p className="text-emerald-300/50 text-xs mt-2">
-              {todaySessionsFromApi} {locale === "th" ? "รายการ" : "sessions"}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 md:gap-3 mb-4 md:mb-6">
-        <Card className="text-center !py-3">
-          <p className="text-2xl font-bold text-blue-400">
-            {todayBookings.filter((b) => b.status === "booked").length}
-          </p>
-          <p className="text-white/40 text-xs mt-1">{locale === "th" ? "รอเช็คอิน" : "Waiting"}</p>
-        </Card>
-        <Card className="text-center !py-3">
-          <p className="text-2xl font-bold text-green-400">
-            {todayBookings.filter((b) => b.status === "in_service").length}
-          </p>
-          <p className="text-white/40 text-xs mt-1">{locale === "th" ? "กำลังทำ" : "Active"}</p>
-        </Card>
-        <Card className="text-center !py-3">
-          <p className="text-2xl font-bold text-accent-gold">
-            {todayBookings.filter((b) => b.status === "completed").length}
-          </p>
-          <p className="text-white/40 text-xs mt-1">{locale === "th" ? "เสร็จแล้ว" : "Done"}</p>
-        </Card>
-      </div>
-
-      {/* Quick Start Button */}
+      {/* Show commission/stats/bookings only when NOT in quick start mode */}
       {!showQuickStart && (
-        <Button
-          variant="primary"
-          className="w-full mb-4"
-          onClick={() => setShowQuickStart(true)}
-        >
-          {locale === "th" ? "➕ เริ่มงานใหม่" : "➕ Start New Session"}
-        </Button>
+        <>
+          {/* Commission Summary - 2 boxes */}
+          <div className="grid grid-cols-2 gap-3 mb-4 md:mb-6">
+            {/* Accumulated commission box */}
+            <div className="relative rounded-2xl overflow-hidden border-2 border-amber-400/30 bg-gradient-to-br from-amber-900/40 via-amber-800/20 to-surface-card p-4 md:p-5 text-center">
+              <div className="absolute inset-0 bg-gradient-to-t from-amber-500/10 to-transparent pointer-events-none" />
+              <div className="relative">
+                <p className="text-amber-300/70 text-xs font-medium tracking-wide mb-1">
+                  💰 {locale === "th" ? "ค่าคอมรวม" : "Total Commission"}
+                </p>
+                <p className="text-2xl md:text-4xl font-extrabold text-amber-400 font-mono leading-none">
+                  ฿{accumulatedCommission.toLocaleString()}
+                </p>
+                <p className="text-amber-300/50 text-xs mt-2">
+                  {locale === "th" ? "7 วันล่าสุด" : "Last 7 days"}
+                </p>
+              </div>
+            </div>
+
+            {/* Commission box */}
+            <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-400/30 bg-gradient-to-br from-emerald-900/40 via-emerald-800/20 to-surface-card p-4 md:p-5 text-center">
+              <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent pointer-events-none" />
+              <div className="relative">
+                <p className="text-emerald-300/70 text-xs font-medium tracking-wide mb-1">
+                  💰 {locale === "th" ? "ค่าคอมวันนี้" : "Commission Today"}
+                </p>
+                <p className="text-2xl md:text-4xl font-extrabold text-emerald-400 font-mono leading-none drop-shadow-[0_0_20px_rgba(52,211,153,0.3)]">
+                  ฿{todayCommissionFromApi.toLocaleString()}
+                </p>
+                <p className="text-emerald-300/50 text-xs mt-2">
+                  {todaySessionsFromApi} {locale === "th" ? "รายการ" : "sessions"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-2 md:gap-3 mb-4 md:mb-6">
+            <Card className="text-center !py-3">
+              <p className="text-2xl font-bold text-blue-400">
+                {todayBookings.filter((b) => b.status === "booked").length}
+              </p>
+              <p className="text-white/40 text-xs mt-1">{locale === "th" ? "รอเช็คอิน" : "Waiting"}</p>
+            </Card>
+            <Card className="text-center !py-3">
+              <p className="text-2xl font-bold text-green-400">
+                {todayBookings.filter((b) => b.status === "in_service").length}
+              </p>
+              <p className="text-white/40 text-xs mt-1">{locale === "th" ? "กำลังทำ" : "Active"}</p>
+            </Card>
+            <Card className="text-center !py-3">
+              <p className="text-2xl font-bold text-accent-gold">
+                {todayBookings.filter((b) => b.status === "completed").length}
+              </p>
+              <p className="text-white/40 text-xs mt-1">{locale === "th" ? "เสร็จแล้ว" : "Done"}</p>
+            </Card>
+          </div>
+
+          {/* Quick Start Button */}
+          <Button
+            variant="primary"
+            className="w-full mb-4"
+            onClick={() => setShowQuickStart(true)}
+          >
+            {locale === "th" ? "➕ เริ่มงานใหม่" : "➕ Start New Session"}
+          </Button>
+        </>
       )}
 
-      {/* Quick Start Panel */}
+      {/* Quick Start Panel — shown alone without other content */}
       {showQuickStart && (
         <Card className="mb-4">
           <h3 className="text-white font-heading text-lg mb-4">
@@ -611,8 +614,8 @@ export default function StaffSessionPage() {
         </Card>
       )}
 
-      {/* Booking Cards - All therapists */}
-      {todayBookings.length === 0 && !showQuickStart ? (
+      {/* Booking Cards - All therapists (hidden during quick start) */}
+      {showQuickStart ? null : todayBookings.length === 0 ? (
         <Card>
           <div className="text-center py-8">
             <p className="text-white/40 text-lg">{locale === "th" ? "ไม่มีรายการ" : "No bookings"}</p>
