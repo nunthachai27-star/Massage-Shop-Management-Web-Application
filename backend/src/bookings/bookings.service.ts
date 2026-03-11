@@ -194,6 +194,21 @@ export class BookingsService {
             .update({ status: "available", current_booking_id: null })
             .eq("id", effectiveBedId);
         }
+        // Auto-confirm the associated payment
+        {
+          const { data: payment } = await client
+            .from("payments")
+            .select("id")
+            .eq("booking_id", id)
+            .eq("status", "pending")
+            .maybeSingle();
+          if (payment) {
+            await client
+              .from("payments")
+              .update({ status: "confirmed", paid_at: new Date().toISOString() })
+              .eq("id", payment.id);
+          }
+        }
         break;
       case "cancelled":
         if (effectiveBedId) {

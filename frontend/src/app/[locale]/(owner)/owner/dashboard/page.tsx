@@ -1,38 +1,48 @@
-import { getTranslations } from "next-intl/server";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { api } from "@/lib/api";
 
-export default async function OwnerDashboardPage() {
-  const t = await getTranslations();
+export default function OwnerDashboardPage() {
+  const t = useTranslations();
+  const locale = useLocale();
 
-  let totalCustomers = 0;
-  let dailyRevenue = 0;
-  let dailyCash = 0;
-  let dailyTransfer = 0;
-  let weeklyRevenue = 0;
-  let weeklyCash = 0;
-  let weeklyTransfer = 0;
-  let monthlyRevenue = 0;
-  let monthlyCash = 0;
-  let monthlyTransfer = 0;
-  try {
-    const [metrics, weekly, monthly] = await Promise.all([
-      api.getDailyMetrics(),
-      api.getWeeklyRevenue(),
-      api.getMonthlyRevenue(),
-    ]);
-    totalCustomers = (metrics.totalCustomers as number) || 0;
-    dailyRevenue = (metrics.dailyRevenue as number) || 0;
-    dailyCash = (metrics.dailyCash as number) || 0;
-    dailyTransfer = (metrics.dailyTransfer as number) || 0;
-    weeklyRevenue = (weekly.weeklyRevenue as number) || 0;
-    weeklyCash = (weekly.weeklyCash as number) || 0;
-    weeklyTransfer = (weekly.weeklyTransfer as number) || 0;
-    monthlyRevenue = (monthly.monthlyRevenue as number) || 0;
-    monthlyCash = (monthly.monthlyCash as number) || 0;
-    monthlyTransfer = (monthly.monthlyTransfer as number) || 0;
-  } catch {
-    // API unavailable — show zeros
-  }
+  const [totalCustomers, setTotalCustomers] = useState(0);
+  const [dailyRevenue, setDailyRevenue] = useState(0);
+  const [dailyCash, setDailyCash] = useState(0);
+  const [dailyTransfer, setDailyTransfer] = useState(0);
+  const [weeklyRevenue, setWeeklyRevenue] = useState(0);
+  const [weeklyCash, setWeeklyCash] = useState(0);
+  const [weeklyTransfer, setWeeklyTransfer] = useState(0);
+  const [monthlyRevenue, setMonthlyRevenue] = useState(0);
+  const [monthlyCash, setMonthlyCash] = useState(0);
+  const [monthlyTransfer, setMonthlyTransfer] = useState(0);
+
+  useEffect(() => {
+    const fetchData = () => {
+      Promise.all([
+        api.getDailyMetrics(),
+        api.getWeeklyRevenue(),
+        api.getMonthlyRevenue(),
+      ]).then(([metrics, weekly, monthly]) => {
+        setTotalCustomers((metrics.totalCustomers as number) || 0);
+        setDailyRevenue((metrics.dailyRevenue as number) || 0);
+        setDailyCash((metrics.dailyCash as number) || 0);
+        setDailyTransfer((metrics.dailyTransfer as number) || 0);
+        setWeeklyRevenue((weekly.weeklyRevenue as number) || 0);
+        setWeeklyCash((weekly.weeklyCash as number) || 0);
+        setWeeklyTransfer((weekly.weeklyTransfer as number) || 0);
+        setMonthlyRevenue((monthly.monthlyRevenue as number) || 0);
+        setMonthlyCash((monthly.monthlyCash as number) || 0);
+        setMonthlyTransfer((monthly.monthlyTransfer as number) || 0);
+      }).catch(() => {});
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div>
