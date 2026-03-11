@@ -111,11 +111,17 @@ export default function StaffSessionPage() {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
-  // Commission summary for logged-in therapist only
-  const myCommissionBookings = bookings.filter(
-    (b) => (b.status === "in_service" || b.status === "completed" || b.status === "checkout")
-      && (!myTherapistId || b.therapistId === myTherapistId)
-  );
+  // Commission summary for logged-in therapist only (today's bookings)
+  const myCommissionBookings = bookings.filter((b) => {
+    if (!myTherapistId) return false;
+    if (b.therapistId !== myTherapistId) return false;
+    if (b.status !== "in_service" && b.status !== "completed" && b.status !== "checkout") return false;
+    const today = new Date();
+    const bd = new Date(b.startTime);
+    return bd.getFullYear() === today.getFullYear() &&
+      bd.getMonth() === today.getMonth() &&
+      bd.getDate() === today.getDate();
+  });
   const totalCommission = myCommissionBookings.reduce((sum, b) => {
     const service = services.find((s) => s.id === b.serviceId);
     if (!service) return sum;
