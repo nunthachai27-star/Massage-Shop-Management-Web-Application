@@ -18,6 +18,9 @@ export default function OwnerDashboardPage() {
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
   const [monthlyCash, setMonthlyCash] = useState(0);
   const [monthlyTransfer, setMonthlyTransfer] = useState(0);
+  const [dailyCommission, setDailyCommission] = useState(0);
+  const [weeklyCommission, setWeeklyCommission] = useState(0);
+  const [monthlyCommission, setMonthlyCommission] = useState(0);
 
   useEffect(() => {
     const fetchData = () => {
@@ -36,6 +39,9 @@ export default function OwnerDashboardPage() {
         setMonthlyRevenue((monthly.monthlyRevenue as number) || 0);
         setMonthlyCash((monthly.monthlyCash as number) || 0);
         setMonthlyTransfer((monthly.monthlyTransfer as number) || 0);
+        setDailyCommission((metrics.dailyCommission as number) || 0);
+        setWeeklyCommission((weekly.weeklyCommission as number) || 0);
+        setMonthlyCommission((monthly.monthlyCommission as number) || 0);
       }).catch(() => {});
     };
 
@@ -69,6 +75,11 @@ export default function OwnerDashboardPage() {
             <span className="text-green-400 text-xs md:text-sm">💵 {dailyCash.toLocaleString()}</span>
             <span className="text-blue-400 text-xs md:text-sm">📱 {dailyTransfer.toLocaleString()}</span>
           </div>
+          {dailyCommission > 0 && (
+            <div className="mt-2 pt-2 border-t border-white/10">
+              <span className="text-emerald-400 text-xs md:text-sm">🧑‍⚕️ {locale === "th" ? "ค่าคอมรวม" : "Commission"}: ฿{dailyCommission.toLocaleString()}</span>
+            </div>
+          )}
         </div>
 
         {/* Weekly Revenue */}
@@ -82,6 +93,11 @@ export default function OwnerDashboardPage() {
             <span className="text-green-400 text-xs md:text-sm">💵 {weeklyCash.toLocaleString()}</span>
             <span className="text-blue-300 text-xs md:text-sm">📱 {weeklyTransfer.toLocaleString()}</span>
           </div>
+          {weeklyCommission > 0 && (
+            <div className="mt-2 pt-2 border-t border-white/10">
+              <span className="text-emerald-400 text-xs md:text-sm">🧑‍⚕️ {locale === "th" ? "ค่าคอมรวม" : "Commission"}: ฿{weeklyCommission.toLocaleString()}</span>
+            </div>
+          )}
         </div>
 
         {/* Monthly Revenue */}
@@ -95,6 +111,11 @@ export default function OwnerDashboardPage() {
             <span className="text-green-400 text-xs md:text-sm">💵 {monthlyCash.toLocaleString()}</span>
             <span className="text-blue-300 text-xs md:text-sm">📱 {monthlyTransfer.toLocaleString()}</span>
           </div>
+          {monthlyCommission > 0 && (
+            <div className="mt-2 pt-2 border-t border-white/10">
+              <span className="text-emerald-400 text-xs md:text-sm">🧑‍⚕️ {locale === "th" ? "ค่าคอมรวม" : "Commission"}: ฿{monthlyCommission.toLocaleString()}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

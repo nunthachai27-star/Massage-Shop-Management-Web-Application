@@ -40,11 +40,20 @@ export class DashboardService {
       ? Math.round((inUse / beds.length) * 100)
       : 0;
 
+    // Daily commissions
+    const { data: commissions } = await client
+      .from("commissions")
+      .select("total_commission")
+      .eq("date", targetDate);
+    const dailyCommission =
+      commissions?.reduce((sum: number, c: any) => sum + Number(c.total_commission), 0) || 0;
+
     return {
       totalCustomers: totalCustomers || 0,
       dailyRevenue,
       dailyCash,
       dailyTransfer,
+      dailyCommission,
       bedUtilization,
     };
   }
@@ -78,10 +87,20 @@ export class DashboardService {
       .lte("start_time", `${endDate}T23:59:59`)
       .not("status", "eq", "cancelled");
 
+    // Weekly commissions
+    const { data: weeklyCommissions } = await client
+      .from("commissions")
+      .select("total_commission")
+      .gte("date", startDate)
+      .lte("date", endDate);
+    const weeklyCommission =
+      weeklyCommissions?.reduce((sum: number, c: any) => sum + Number(c.total_commission), 0) || 0;
+
     return {
       weeklyRevenue,
       weeklyCash,
       weeklyTransfer,
+      weeklyCommission,
       weeklyCustomers: weeklyCustomers || 0,
       startDate,
       endDate,
@@ -115,10 +134,20 @@ export class DashboardService {
       .lte("start_time", `${endDate}T23:59:59`)
       .not("status", "eq", "cancelled");
 
+    // Monthly commissions
+    const { data: monthlyCommissions } = await client
+      .from("commissions")
+      .select("total_commission")
+      .gte("date", startDate)
+      .lte("date", endDate);
+    const monthlyCommission =
+      monthlyCommissions?.reduce((sum: number, c: any) => sum + Number(c.total_commission), 0) || 0;
+
     return {
       monthlyRevenue,
       monthlyCash,
       monthlyTransfer,
+      monthlyCommission,
       monthlyCustomers: monthlyCustomers || 0,
       startDate,
       endDate,
