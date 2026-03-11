@@ -29,6 +29,19 @@ function getCommission(price: number, isThaiMassage: boolean, serviceName = ""):
   return 0;
 }
 
+// Therapist color themes — full class strings so Tailwind can detect them at build time
+const therapistColors = [
+  { card: "!border-amber-400/50 !bg-gradient-to-br !from-amber-900/30 !to-surface-card ring-1 ring-amber-400/20", badge: "bg-amber-400 text-amber-900", name: "text-amber-400 bg-amber-400/20" },
+  { card: "!border-cyan-400/50 !bg-gradient-to-br !from-cyan-900/30 !to-surface-card ring-1 ring-cyan-400/20", badge: "bg-cyan-400 text-cyan-900", name: "text-cyan-400 bg-cyan-400/20" },
+  { card: "!border-purple-400/50 !bg-gradient-to-br !from-purple-900/30 !to-surface-card ring-1 ring-purple-400/20", badge: "bg-purple-400 text-purple-900", name: "text-purple-400 bg-purple-400/20" },
+  { card: "!border-rose-400/50 !bg-gradient-to-br !from-rose-900/30 !to-surface-card ring-1 ring-rose-400/20", badge: "bg-rose-400 text-rose-900", name: "text-rose-400 bg-rose-400/20" },
+  { card: "!border-emerald-400/50 !bg-gradient-to-br !from-emerald-900/30 !to-surface-card ring-1 ring-emerald-400/20", badge: "bg-emerald-400 text-emerald-900", name: "text-emerald-400 bg-emerald-400/20" },
+  { card: "!border-blue-400/50 !bg-gradient-to-br !from-blue-900/30 !to-surface-card ring-1 ring-blue-400/20", badge: "bg-blue-400 text-blue-900", name: "text-blue-400 bg-blue-400/20" },
+  { card: "!border-orange-400/50 !bg-gradient-to-br !from-orange-900/30 !to-surface-card ring-1 ring-orange-400/20", badge: "bg-orange-400 text-orange-900", name: "text-orange-400 bg-orange-400/20" },
+  { card: "!border-pink-400/50 !bg-gradient-to-br !from-pink-900/30 !to-surface-card ring-1 ring-pink-400/20", badge: "bg-pink-400 text-pink-900", name: "text-pink-400 bg-pink-400/20" },
+  { card: "!border-teal-400/50 !bg-gradient-to-br !from-teal-900/30 !to-surface-card ring-1 ring-teal-400/20", badge: "bg-teal-400 text-teal-900", name: "text-teal-400 bg-teal-400/20" },
+];
+
 const statusConfig: Record<string, { label: { th: string; en: string }; variant: "blue" | "gold" | "green" | "gray" }> = {
   booked: { label: { th: "รอเช็คอิน", en: "Waiting" }, variant: "blue" },
   in_service: { label: { th: "กำลังให้บริการ", en: "In Service" }, variant: "green" },
@@ -552,6 +565,7 @@ export default function StaffSessionPage() {
             const isThaiMassage = service ? service.name.th.includes("นวดไทย") : false;
             const bookingCommission = service ? getCommission(service.price, isThaiMassage, service.name.th) : 0;
             const isMyBooking = myTherapistId != null && booking.therapistId === myTherapistId;
+            const tColor = therapistColors[(booking.therapistId - 1) % therapistColors.length];
 
             // Progress calculation for in_service
             const startTime = new Date(booking.startTime);
@@ -565,17 +579,17 @@ export default function StaffSessionPage() {
             const remainingMin = Math.ceil(remaining / 60000);
 
             return (
-              <Card key={booking.id} className={isMyBooking ? "!border-accent-gold/50 !bg-gradient-to-br !from-amber-900/30 !to-surface-card ring-1 ring-accent-gold/20" : ""}>
+              <Card key={booking.id} className={tColor.card}>
                 {/* Header */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 flex-wrap">
                     {isMyBooking && (
-                      <span className="text-amber-900 font-bold text-xs bg-accent-gold px-1.5 py-0.5 rounded">
+                      <span className={`font-bold text-xs px-1.5 py-0.5 rounded ${tColor.badge}`}>
                         {locale === "th" ? "งานฉัน" : "MY"}
                       </span>
                     )}
                     {therapist && (
-                      <span className={`font-medium text-sm px-2 py-0.5 rounded-lg ${isMyBooking ? "text-accent-gold bg-accent-gold/20" : "text-accent-gold bg-accent-gold/10"}`}>
+                      <span className={`font-medium text-sm px-2 py-0.5 rounded-lg ${tColor.name}`}>
                         {locale === "th" ? therapist.name.th : therapist.name.en}
                       </span>
                     )}
