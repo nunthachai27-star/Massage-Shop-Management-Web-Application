@@ -9,9 +9,14 @@ function getThaiDate(d: Date = new Date()): string {
 // Commission calculation:
 // Thai massage: 50% of price (400→200, 600→300, 800→400, 1000→500)
 // Aroma/other: 600→100, 800→200, 1000→250
-function getCommission(price: number, isThaiMassage: boolean): number {
+// Free aroma (ฟรี): 100 commission
+function getCommission(price: number, isThaiMassage: boolean, serviceName: string): number {
   if (isThaiMassage) {
     return Math.round(price / 2);
+  }
+  // Free aroma services still earn commission
+  if (price === 0 && serviceName.includes("ฟรี")) {
+    return 100;
   }
   if (price >= 1000) return 250;
   if (price >= 800) return 200;
@@ -48,8 +53,9 @@ export class CommissionsService {
           totalSessions++;
           const price = Number(service.price);
           totalRevenue += price;
-          const isThaiMassage = (service.name_th || "").includes("นวดไทย");
-          totalCommission += getCommission(price, isThaiMassage);
+          const nameTh = service.name_th || "";
+          const isThaiMassage = nameTh.includes("นวดไทย");
+          totalCommission += getCommission(price, isThaiMassage, nameTh);
         }
       }
     }

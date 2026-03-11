@@ -15,9 +15,13 @@ import { transformBooking, transformService, transformTherapist, transformBed } 
 // Commission calculation
 // Thai massage: 50% of price (400→200, 600→300, 800→400, 1000→500)
 // Aroma/other: 600→100, 800→200, 1000→250
-function getCommission(price: number, isThaiMassage: boolean): number {
+// Free aroma (ฟรี): 100 commission
+function getCommission(price: number, isThaiMassage: boolean, serviceName = ""): number {
   if (isThaiMassage) {
     return Math.round(price / 2);
+  }
+  if (price === 0 && serviceName.includes("ฟรี")) {
+    return 100;
   }
   if (price >= 1000) return 250;
   if (price >= 800) return 200;
@@ -547,7 +551,7 @@ export default function StaffSessionPage() {
             const therapist = therapists.find((th) => th.id === booking.therapistId);
             const bed = booking.bedId ? beds.find((b) => b.id === booking.bedId) : null;
             const isThaiMassage = service ? service.name.th.includes("นวดไทย") : false;
-            const bookingCommission = service ? getCommission(service.price, isThaiMassage) : 0;
+            const bookingCommission = service ? getCommission(service.price, isThaiMassage, service.name.th) : 0;
 
             // Progress calculation for in_service
             const startTime = new Date(booking.startTime);
