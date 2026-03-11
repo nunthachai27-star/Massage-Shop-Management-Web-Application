@@ -55,6 +55,7 @@ export function transformBooking(b: ApiRecord): Booking {
     startTime: b.start_time as string,
     endTime: b.end_time as string,
     status: b.status as Booking["status"],
+    customerGender: b.customer_gender as Booking["customerGender"],
     createdAt: b.created_at as string,
   };
 }

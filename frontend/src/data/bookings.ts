@@ -11,6 +11,7 @@ export interface Booking {
   startTime: string;
   endTime: string;
   status: BookingStatus;
+  customerGender?: "male" | "female";
   createdAt: string;
 }
 

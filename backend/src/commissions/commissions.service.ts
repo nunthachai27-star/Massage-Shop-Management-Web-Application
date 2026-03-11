@@ -7,10 +7,15 @@ function getThaiDate(d: Date = new Date()): string {
 }
 
 // Commission calculation:
+// Female customer: always 50% of price
 // Thai massage: 50% of price (400→200, 600→300, 800→400, 1000→500)
 // Aroma/other: 600→100, 800→200, 1000→250
 // Free aroma (ฟรี): 100 commission
-function getCommission(price: number, isThaiMassage: boolean, serviceName: string): number {
+function getCommission(price: number, isThaiMassage: boolean, serviceName: string, customerGender?: string): number {
+  // Female customer: commission = 50% of service price
+  if (customerGender === "female") {
+    return Math.round(price / 2);
+  }
   if (isThaiMassage) {
     return Math.round(price / 2);
   }
@@ -55,7 +60,7 @@ export class CommissionsService {
           totalRevenue += price;
           const nameTh = service.name_th || "";
           const isThaiMassage = nameTh.includes("นวดไทย");
-          totalCommission += getCommission(price, isThaiMassage, nameTh);
+          totalCommission += getCommission(price, isThaiMassage, nameTh, b.customer_gender);
         }
       }
     }

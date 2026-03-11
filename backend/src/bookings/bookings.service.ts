@@ -115,6 +115,7 @@ export class BookingsService {
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
         status: "booked",
+        customer_gender: dto.customer_gender || null,
       })
       .select("*, services(*), therapists(*), customers(*), beds!bookings_bed_id_fkey(*)")
       .single();
@@ -259,7 +260,7 @@ export class BookingsService {
     return updated;
   }
 
-  async updateDetails(id: number, updates: { therapist_id?: number; service_id?: number; bed_id?: number }) {
+  async updateDetails(id: number, updates: { therapist_id?: number; service_id?: number; bed_id?: number; customer_gender?: string }) {
     const client = this.supabase.getClient();
 
     const { data: booking } = await client
@@ -270,6 +271,7 @@ export class BookingsService {
     if (!booking) throw new NotFoundException("Booking not found");
 
     const payload: Record<string, unknown> = {};
+    if (updates.customer_gender) payload.customer_gender = updates.customer_gender;
     if (updates.therapist_id) payload.therapist_id = updates.therapist_id;
     if (updates.service_id) {
       const { data: service } = await client

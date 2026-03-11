@@ -9,4 +9,5 @@ export class CreateBookingDto {
   @ApiPropertyOptional() @IsOptional() @IsNumber() bed_id?: number;
   @ApiProperty() @IsDateString() start_time: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @IsIn(["cash", "bank_transfer"]) payment_method?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @IsIn(["male", "female"]) customer_gender?: string;
 }

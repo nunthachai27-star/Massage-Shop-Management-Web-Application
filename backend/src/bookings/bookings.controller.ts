@@ -59,7 +59,7 @@ export class BookingsController {
   @Patch(":id/details")
   updateDetails(
     @Param("id", ParseIntPipe) id: number,
-    @Body() dto: { therapist_id?: number; service_id?: number; bed_id?: number },
+    @Body() dto: { therapist_id?: number; service_id?: number; bed_id?: number; customer_gender?: string },
   ) {
     return this.bookingsService.updateDetails(id, dto);
   }

@@ -118,6 +118,7 @@ export default function StaffBookingsPage() {
   const [serviceId, setServiceId] = useState(0);
   const [therapistId, setTherapistId] = useState(0);
   const [startTime, setStartTime] = useState("");
+  const [bookingGender, setBookingGender] = useState<"male" | "female">("male");
 
   // Check-in state: which booking is being checked in, and which room is selected
   const [checkinBookingId, setCheckinBookingId] = useState<number | null>(null);
@@ -128,6 +129,7 @@ export default function StaffBookingsPage() {
   const [editTherapistId, setEditTherapistId] = useState(0);
   const [editServiceId, setEditServiceId] = useState(0);
   const [editBedId, setEditBedId] = useState(0);
+  const [editGender, setEditGender] = useState<"male" | "female">("male");
   const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
@@ -197,6 +199,7 @@ export default function StaffBookingsPage() {
     setServiceId(0);
     setTherapistId(0);
     setStartTime("");
+    setBookingGender("male");
     setShowForm(false);
   };
 
@@ -257,6 +260,7 @@ export default function StaffBookingsPage() {
       startTime: start.toISOString(),
       endTime: end.toISOString(),
       status: "booked",
+      customerGender: bookingGender,
       createdAt: new Date().toISOString(),
     };
 
@@ -268,6 +272,7 @@ export default function StaffBookingsPage() {
         therapist_id: therapistId,
         bed_id: 0,
         start_time: start.toISOString(),
+        customer_gender: bookingGender,
       });
       if (result?.id) newBooking.id = result.id as number;
     } catch {
@@ -365,6 +370,7 @@ export default function StaffBookingsPage() {
     setEditTherapistId(booking.therapistId);
     setEditServiceId(booking.serviceId);
     setEditBedId(booking.bedId || 0);
+    setEditGender(booking.customerGender || "male");
   };
 
   // Save edit
@@ -374,10 +380,11 @@ export default function StaffBookingsPage() {
     const booking = bookings.find((b) => b.id === editBookingId);
     if (!booking) return;
 
-    const changes: { therapist_id?: number; service_id?: number; bed_id?: number } = {};
+    const changes: { therapist_id?: number; service_id?: number; bed_id?: number; customer_gender?: string } = {};
     if (editTherapistId !== booking.therapistId) changes.therapist_id = editTherapistId;
     if (editServiceId !== booking.serviceId) changes.service_id = editServiceId;
     if (editBedId !== (booking.bedId || 0)) changes.bed_id = editBedId;
+    if (editGender !== (booking.customerGender || "male")) changes.customer_gender = editGender;
 
     if (Object.keys(changes).length > 0) {
       // Update frontend state
@@ -415,6 +422,7 @@ export default function StaffBookingsPage() {
                 ...(changes.therapist_id ? { therapistId: changes.therapist_id } : {}),
                 ...(changes.service_id ? { serviceId: changes.service_id, endTime: newEndTime } : {}),
                 ...(changes.bed_id ? { bedId: changes.bed_id } : {}),
+                ...(changes.customer_gender ? { customerGender: changes.customer_gender as "male" | "female" } : {}),
               }
             : b
         )
@@ -727,6 +735,35 @@ export default function StaffBookingsPage() {
               </div>
             </div>
 
+            {/* Customer Gender */}
+            <div>
+              <label className="block text-white/50 text-sm mb-2">
+                {locale === "th" ? "เพศลูกค้า" : "Customer Gender"}
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setBookingGender("male")}
+                  className={`p-3 rounded-lg border-2 text-center transition-all cursor-pointer ${
+                    bookingGender === "male"
+                      ? "border-blue-400 bg-blue-500/20 text-blue-400"
+                      : "border-white/10 text-white/60 hover:border-white/30"
+                  }`}
+                >
+                  👨 {locale === "th" ? "ชาย" : "Male"}
+                </button>
+                <button
+                  onClick={() => setBookingGender("female")}
+                  className={`p-3 rounded-lg border-2 text-center transition-all cursor-pointer ${
+                    bookingGender === "female"
+                      ? "border-pink-400 bg-pink-500/20 text-pink-400"
+                      : "border-white/10 text-white/60 hover:border-white/30"
+                  }`}
+                >
+                  👩 {locale === "th" ? "หญิง" : "Female"}
+                </button>
+              </div>
+            </div>
+
             {/* Free visit notice */}
             {selectedCustomer && selectedCustomer.visitCount % 5 === 0 && selectedCustomer.visitCount > 0 && (
               <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-center">
@@ -946,6 +983,31 @@ export default function StaffBookingsPage() {
                         </button>
                       );
                     })}
+                  </div>
+
+                  {/* Customer Gender */}
+                  <p className="text-white/50 text-xs mb-2">{locale === "th" ? "เพศลูกค้า" : "Customer Gender"}</p>
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    <button
+                      onClick={() => setEditGender("male")}
+                      className={`p-2 rounded-lg border text-center transition-all cursor-pointer text-xs ${
+                        editGender === "male"
+                          ? "border-blue-400 bg-blue-500/15 text-blue-400"
+                          : "border-white/10 text-white/60 hover:border-white/30"
+                      }`}
+                    >
+                      👨 {locale === "th" ? "ชาย" : "Male"}
+                    </button>
+                    <button
+                      onClick={() => setEditGender("female")}
+                      className={`p-2 rounded-lg border text-center transition-all cursor-pointer text-xs ${
+                        editGender === "female"
+                          ? "border-pink-400 bg-pink-500/15 text-pink-400"
+                          : "border-white/10 text-white/60 hover:border-white/30"
+                      }`}
+                    >
+                      👩 {locale === "th" ? "หญิง" : "Female"}
+                    </button>
                   </div>
 
                   <div className="flex gap-2">

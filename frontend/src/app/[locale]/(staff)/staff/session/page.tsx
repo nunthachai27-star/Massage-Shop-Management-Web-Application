@@ -13,10 +13,14 @@ import { api } from "@/lib/api";
 import { transformBooking, transformService, transformTherapist, transformBed } from "@/lib/transform";
 
 // Commission calculation
+// Female customer: always 50% of price
 // Thai massage: 50% of price (400→200, 600→300, 800→400, 1000→500)
 // Aroma/other: 600→100, 800→200, 1000→250
 // Free aroma (ฟรี): 100 commission
-function getCommission(price: number, isThaiMassage: boolean, serviceName = ""): number {
+function getCommission(price: number, isThaiMassage: boolean, serviceName = "", customerGender?: string): number {
+  if (customerGender === "female") {
+    return Math.round(price / 2);
+  }
   if (isThaiMassage) {
     return Math.round(price / 2);
   }
@@ -98,6 +102,7 @@ export default function StaffSessionPage() {
   const [qsServiceId, setQsServiceId] = useState(0);
   const [qsBedId, setQsBedId] = useState(0);
   const [qsPaymentMethod, setQsPaymentMethod] = useState<"cash" | "bank_transfer">("cash");
+  const [qsCustomerGender, setQsCustomerGender] = useState<"male" | "female">("male");
   const [qsLoading, setQsLoading] = useState(false);
 
   useEffect(() => {
@@ -292,6 +297,7 @@ export default function StaffSessionPage() {
       end_time: endTime.toISOString(),
       status: "in_service",
       payment_method: qsPaymentMethod,
+      customer_gender: qsCustomerGender,
     };
 
     try {
@@ -311,6 +317,7 @@ export default function StaffSessionPage() {
         startTime: now2.toISOString(),
         endTime: endTime.toISOString(),
         status: "in_service",
+        customerGender: qsCustomerGender,
         createdAt: now2.toISOString(),
       };
       setBookings(prev => [...prev, newBooking]);
@@ -321,6 +328,7 @@ export default function StaffSessionPage() {
     setQsServiceId(0);
     setQsBedId(0);
     setQsPaymentMethod("cash");
+    setQsCustomerGender("male");
     setQsLoading(false);
   };
 
@@ -535,6 +543,42 @@ export default function StaffSessionPage() {
             </div>
           </div>
 
+          {/* Customer Gender — Rose/Blue theme */}
+          <div className="mb-5 p-3 rounded-xl bg-rose-500/5 border border-rose-500/10">
+            <p className="text-rose-300 text-sm font-medium mb-2 flex items-center gap-1.5">
+              <span className="text-base">👤</span>
+              {locale === "th" ? "เพศลูกค้า" : "Customer Gender"}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setQsCustomerGender("male")}
+                className={`p-3 rounded-lg border-2 text-center transition-all cursor-pointer ${
+                  qsCustomerGender === "male"
+                    ? "border-blue-400 bg-blue-500/20 shadow-[0_0_12px_rgba(96,165,250,0.15)]"
+                    : "border-white/10 hover:border-blue-400/40 hover:bg-blue-500/5"
+                }`}
+              >
+                <span className="text-2xl">👨</span>
+                <p className={`text-sm font-medium mt-1 ${qsCustomerGender === "male" ? "text-blue-400" : "text-white/70"}`}>
+                  {locale === "th" ? "ชาย" : "Male"}
+                </p>
+              </button>
+              <button
+                onClick={() => setQsCustomerGender("female")}
+                className={`p-3 rounded-lg border-2 text-center transition-all cursor-pointer ${
+                  qsCustomerGender === "female"
+                    ? "border-pink-400 bg-pink-500/20 shadow-[0_0_12px_rgba(236,72,153,0.15)]"
+                    : "border-white/10 hover:border-pink-400/40 hover:bg-pink-500/5"
+                }`}
+              >
+                <span className="text-2xl">👩</span>
+                <p className={`text-sm font-medium mt-1 ${qsCustomerGender === "female" ? "text-pink-400" : "text-white/70"}`}>
+                  {locale === "th" ? "หญิง" : "Female"}
+                </p>
+              </button>
+            </div>
+          </div>
+
           {/* Action Buttons */}
           <div className="flex gap-2">
             <Button
@@ -547,7 +591,7 @@ export default function StaffSessionPage() {
             </Button>
             <Button
               variant="danger"
-              onClick={() => { setShowQuickStart(false); setQsTherapistId(0); setQsServiceId(0); setQsBedId(0); setQsPaymentMethod("cash"); }}
+              onClick={() => { setShowQuickStart(false); setQsTherapistId(0); setQsServiceId(0); setQsBedId(0); setQsPaymentMethod("cash"); setQsCustomerGender("male"); }}
             >
               {locale === "th" ? "ยกเลิก" : "Cancel"}
             </Button>
@@ -573,7 +617,7 @@ export default function StaffSessionPage() {
             const therapist = therapists.find((th) => th.id === booking.therapistId);
             const bed = booking.bedId ? beds.find((b) => b.id === booking.bedId) : null;
             const isThaiMassage = service ? service.name.th.includes("นวดไทย") : false;
-            const bookingCommission = service ? getCommission(service.price, isThaiMassage, service.name.th) : 0;
+            const bookingCommission = service ? getCommission(service.price, isThaiMassage, service.name.th, booking.customerGender) : 0;
             const isMyBooking = myTherapistId != null && booking.therapistId === myTherapistId;
             const tColor = therapistColors[(booking.therapistId - 1) % therapistColors.length];
 
@@ -603,7 +647,9 @@ export default function StaffSessionPage() {
                         {locale === "th" ? therapist.name.th : therapist.name.en}
                       </span>
                     )}
-                    <h3 className="font-heading text-base text-white">{booking.customerName}</h3>
+                    <h3 className="font-heading text-base text-white">
+                      {booking.customerGender === "female" ? "👩 " : "👨 "}{booking.customerName}
+                    </h3>
                     <Badge variant={config.variant}>
                       {locale === "th" ? config.label.th : config.label.en}
                     </Badge>
