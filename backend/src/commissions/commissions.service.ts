@@ -1,14 +1,17 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service";
 
-// Commission calculation: 600→100, 800→200, 1000→250, Thai massage → half
+// Commission calculation:
+// Thai massage: 50% of price (400→200, 600→300, 800→400, 1000→500)
+// Aroma/other: 600→100, 800→200, 1000→250
 function getCommission(price: number, isThaiMassage: boolean): number {
-  let commission = 0;
-  if (price >= 1000) commission = 250;
-  else if (price >= 800) commission = 200;
-  else if (price >= 600) commission = 100;
-  else return 0;
-  return isThaiMassage ? Math.round(commission / 2) : commission;
+  if (isThaiMassage) {
+    return Math.round(price / 2);
+  }
+  if (price >= 1000) return 250;
+  if (price >= 800) return 200;
+  if (price >= 600) return 100;
+  return 0;
 }
 
 @Injectable()
@@ -40,7 +43,7 @@ export class CommissionsService {
           totalSessions++;
           const price = Number(service.price);
           totalRevenue += price;
-          const isThaiMassage = (service.name_th || "").includes("แผนไทย");
+          const isThaiMassage = (service.name_th || "").includes("นวดไทย");
           totalCommission += getCommission(price, isThaiMassage);
         }
       }
