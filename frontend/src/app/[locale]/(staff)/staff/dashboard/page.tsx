@@ -50,13 +50,16 @@ export default function StaffDashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Normalize date from API (could be "2026-03-11" or "2026-03-11T00:00:00.000Z")
+  const getDateStr = (d: string) => (d || "").substring(0, 10);
+
   const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr + "T00:00:00");
+    const d = new Date(getDateStr(dateStr) + "T00:00:00");
     return d.toLocaleDateString("th-TH", { weekday: "short", day: "numeric", month: "short" });
   };
 
-  const todayStr = new Date().toISOString().split("T")[0];
-  const todayCommission = commissions.find((c) => c.date === todayStr);
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+  const todayCommission = commissions.find((c) => getDateStr(c.date) === todayStr);
 
   return (
     <div>
@@ -75,25 +78,25 @@ export default function StaffDashboardPage() {
                   {locale === "th" ? "วันนี้" : "Today"}
                 </span>
                 <span className="text-emerald-400 font-heading text-2xl">
-                  {todayCommission.total_commission.toLocaleString()} ฿
+                  {Number(todayCommission.total_commission).toLocaleString()} ฿
                 </span>
               </div>
               <div className="flex justify-between text-sm text-white/50 mt-1">
                 <span>{todayCommission.total_sessions} {locale === "th" ? "เคส" : "sessions"}</span>
-                <span>{locale === "th" ? "รายได้" : "Revenue"} {todayCommission.total_revenue.toLocaleString()} ฿</span>
+                <span>{locale === "th" ? "รายได้" : "Revenue"} {Number(todayCommission.total_revenue).toLocaleString()} ฿</span>
               </div>
             </Card>
           )}
 
           {/* Last 7 days */}
           <div className="grid grid-cols-1 gap-2">
-            {commissions.filter((c) => c.date !== todayStr && c.total_sessions > 0).map((c) => (
+            {commissions.filter((c) => getDateStr(c.date) !== todayStr && c.total_sessions > 0).map((c) => (
               <Card key={c.date} className="!py-3">
                 <div className="flex items-center justify-between">
                   <span className="text-white/70 text-sm">{formatDate(c.date)}</span>
                   <div className="flex items-center gap-3">
                     <span className="text-white/50 text-sm">{c.total_sessions} {locale === "th" ? "เคส" : "sessions"}</span>
-                    <span className="text-white font-medium">{c.total_commission.toLocaleString()} ฿</span>
+                    <span className="text-white font-medium">{Number(c.total_commission).toLocaleString()} ฿</span>
                   </div>
                 </div>
               </Card>

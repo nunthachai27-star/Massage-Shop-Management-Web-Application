@@ -65,13 +65,13 @@ export default function StaffSessionPage() {
   useEffect(() => {
     api.getMyCommissions().then((data: any) => {
       const records = data || [];
-      const total = records.reduce((sum: number, c: any) => sum + (c.total_commission || 0), 0);
+      const total = records.reduce((sum: number, c: any) => sum + (Number(c.total_commission) || 0), 0);
       setAccumulatedCommission(total);
-      // Find today's record (Thai timezone)
+      // Find today's record (Thai timezone) — API returns date as ISO "2026-03-11T00:00:00.000Z"
       const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
-      const todayRecord = records.find((c: any) => c.date === todayStr);
-      setTodayCommissionFromApi(todayRecord?.total_commission || 0);
-      setTodaySessionsFromApi(todayRecord?.total_sessions || 0);
+      const todayRecord = records.find((c: any) => (c.date || "").substring(0, 10) === todayStr);
+      setTodayCommissionFromApi(Number(todayRecord?.total_commission) || 0);
+      setTodaySessionsFromApi(Number(todayRecord?.total_sessions) || 0);
     }).catch(() => {});
   }, []);
 
