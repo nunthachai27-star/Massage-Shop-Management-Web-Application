@@ -96,9 +96,12 @@ export default function StaffSessionPage() {
     }).catch(() => {});
   }, []);
 
-  // Quick start state
+  // Quick start state — pre-select logged-in therapist
   const [showQuickStart, setShowQuickStart] = useState(false);
   const [qsTherapistId, setQsTherapistId] = useState(0);
+  useEffect(() => {
+    if (myTherapistId && qsTherapistId === 0) setQsTherapistId(myTherapistId);
+  }, [myTherapistId]); // eslint-disable-line react-hooks/exhaustive-deps
   const [qsServiceId, setQsServiceId] = useState(0);
   const [qsBedId, setQsBedId] = useState(0);
   const [qsPaymentMethod, setQsPaymentMethod] = useState<"cash" | "bank_transfer">("cash");
