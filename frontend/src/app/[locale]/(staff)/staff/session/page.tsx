@@ -58,6 +58,15 @@ export default function StaffSessionPage() {
   // Check-in state
   const [checkinLoading, setCheckinLoading] = useState<number | null>(null);
 
+  // Accumulated commission from API
+  const [accumulatedCommission, setAccumulatedCommission] = useState(0);
+  useEffect(() => {
+    api.getMyCommissions().then((data: any) => {
+      const total = (data || []).reduce((sum: number, c: any) => sum + (c.total_commission || 0), 0);
+      setAccumulatedCommission(total);
+    }).catch(() => {});
+  }, []);
+
   // Quick start state
   const [showQuickStart, setShowQuickStart] = useState(false);
   const [qsTherapistId, setQsTherapistId] = useState(0);
@@ -268,20 +277,37 @@ export default function StaffSessionPage() {
         </div>
       </div>
 
-      {/* Commission Summary */}
-      <div className="relative mb-4 md:mb-6 rounded-2xl overflow-hidden border-2 border-emerald-400/40 bg-gradient-to-br from-emerald-900/40 via-emerald-800/20 to-surface-card p-5 md:p-6 text-center">
-        <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent pointer-events-none" />
-        <div className="relative">
-          <p className="text-emerald-300/70 text-sm font-medium tracking-wide uppercase mb-2">
-            💰 {locale === "th" ? "ค่าคอมรวมวันนี้" : "Total Commission Today"}
-          </p>
-          <p className="text-4xl md:text-6xl font-extrabold text-emerald-400 font-mono leading-none drop-shadow-[0_0_20px_rgba(52,211,153,0.3)]">
-            ฿{totalCommission.toLocaleString()}
-          </p>
-          <div className="mt-3 inline-flex items-center gap-2 bg-emerald-500/15 px-4 py-1.5 rounded-full">
-            <span className="text-emerald-300 text-sm font-medium">
-              {myCommissionBookings.length} {locale === "th" ? "รายการ" : "session(s)"}
-            </span>
+      {/* Commission Summary - 2 boxes */}
+      <div className="grid grid-cols-2 gap-3 mb-4 md:mb-6">
+        {/* Accumulated commission box */}
+        <div className="relative rounded-2xl overflow-hidden border-2 border-amber-400/30 bg-gradient-to-br from-amber-900/40 via-amber-800/20 to-surface-card p-4 md:p-5 text-center">
+          <div className="absolute inset-0 bg-gradient-to-t from-amber-500/10 to-transparent pointer-events-none" />
+          <div className="relative">
+            <p className="text-amber-300/70 text-xs font-medium tracking-wide mb-1">
+              💰 {locale === "th" ? "ค่าคอมรวม" : "Total Commission"}
+            </p>
+            <p className="text-2xl md:text-4xl font-extrabold text-amber-400 font-mono leading-none">
+              ฿{accumulatedCommission.toLocaleString()}
+            </p>
+            <p className="text-amber-300/50 text-xs mt-2">
+              {locale === "th" ? "7 วันล่าสุด" : "Last 7 days"}
+            </p>
+          </div>
+        </div>
+
+        {/* Commission box */}
+        <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-400/30 bg-gradient-to-br from-emerald-900/40 via-emerald-800/20 to-surface-card p-4 md:p-5 text-center">
+          <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent pointer-events-none" />
+          <div className="relative">
+            <p className="text-emerald-300/70 text-xs font-medium tracking-wide mb-1">
+              💰 {locale === "th" ? "ค่าคอมวันนี้" : "Commission Today"}
+            </p>
+            <p className="text-2xl md:text-4xl font-extrabold text-emerald-400 font-mono leading-none drop-shadow-[0_0_20px_rgba(52,211,153,0.3)]">
+              ฿{totalCommission.toLocaleString()}
+            </p>
+            <p className="text-emerald-300/50 text-xs mt-2">
+              {myCommissionBookings.length} {locale === "th" ? "รายการ" : "sessions"}
+            </p>
           </div>
         </div>
       </div>
