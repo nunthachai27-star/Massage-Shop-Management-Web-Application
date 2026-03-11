@@ -1,29 +1,34 @@
 import { Injectable } from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service";
 
+// Get date in Thailand timezone (UTC+7)
+function getThaiDate(d: Date = new Date()): string {
+  return d.toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" }); // YYYY-MM-DD
+}
+
 @Injectable()
 export class DashboardService {
   constructor(private supabase: SupabaseService) {}
 
   async getDailyMetrics(date?: string) {
     const client = this.supabase.getClient();
-    const targetDate = date || new Date().toISOString().split("T")[0];
+    const targetDate = date || getThaiDate();
 
     // Total customers today
     const { count: totalCustomers } = await client
       .from("bookings")
       .select("*", { count: "exact", head: true })
-      .gte("start_time", `${targetDate}T00:00:00`)
-      .lte("start_time", `${targetDate}T23:59:59`)
+      .gte("start_time", `${targetDate}T00:00:00+07:00`)
+      .lte("start_time", `${targetDate}T23:59:59+07:00`)
       .not("status", "eq", "cancelled");
 
-    // Daily revenue (confirmed payments)
+    // Daily revenue (all payments for non-cancelled bookings)
     const { data: payments } = await client
       .from("payments")
-      .select("amount, method, booking_id, bookings!inner(start_time)")
-      .eq("status", "confirmed")
-      .gte("bookings.start_time", `${targetDate}T00:00:00`)
-      .lte("bookings.start_time", `${targetDate}T23:59:59`);
+      .select("amount, method, booking_id, bookings!inner(start_time, status)")
+      .gte("bookings.start_time", `${targetDate}T00:00:00+07:00`)
+      .lte("bookings.start_time", `${targetDate}T23:59:59+07:00`)
+      .not("bookings.status", "eq", "cancelled");
 
     const dailyRevenue =
       payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
@@ -63,15 +68,15 @@ export class DashboardService {
     const today = new Date();
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
-    const startDate = startOfWeek.toISOString().split("T")[0];
-    const endDate = today.toISOString().split("T")[0];
+    const startDate = getThaiDate(startOfWeek);
+    const endDate = getThaiDate();
 
     const { data: payments } = await client
       .from("payments")
-      .select("amount, method, booking_id, bookings!inner(start_time)")
-      .eq("status", "confirmed")
-      .gte("bookings.start_time", `${startDate}T00:00:00`)
-      .lte("bookings.start_time", `${endDate}T23:59:59`);
+      .select("amount, method, booking_id, bookings!inner(start_time, status)")
+      .gte("bookings.start_time", `${startDate}T00:00:00+07:00`)
+      .lte("bookings.start_time", `${endDate}T23:59:59+07:00`)
+      .not("bookings.status", "eq", "cancelled");
 
     const weeklyRevenue =
       payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
@@ -83,8 +88,8 @@ export class DashboardService {
     const { count: weeklyCustomers } = await client
       .from("bookings")
       .select("*", { count: "exact", head: true })
-      .gte("start_time", `${startDate}T00:00:00`)
-      .lte("start_time", `${endDate}T23:59:59`)
+      .gte("start_time", `${startDate}T00:00:00+07:00`)
+      .lte("start_time", `${endDate}T23:59:59+07:00`)
       .not("status", "eq", "cancelled");
 
     // Weekly commissions
@@ -109,16 +114,15 @@ export class DashboardService {
 
   async getMonthlyRevenue() {
     const client = this.supabase.getClient();
-    const today = new Date();
-    const startDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
-    const endDate = today.toISOString().split("T")[0];
+    const endDate = getThaiDate();
+    const startDate = endDate.substring(0, 8) + "01"; // first day of month
 
     const { data: payments } = await client
       .from("payments")
-      .select("amount, method, booking_id, bookings!inner(start_time)")
-      .eq("status", "confirmed")
-      .gte("bookings.start_time", `${startDate}T00:00:00`)
-      .lte("bookings.start_time", `${endDate}T23:59:59`);
+      .select("amount, method, booking_id, bookings!inner(start_time, status)")
+      .gte("bookings.start_time", `${startDate}T00:00:00+07:00`)
+      .lte("bookings.start_time", `${endDate}T23:59:59+07:00`)
+      .not("bookings.status", "eq", "cancelled");
 
     const monthlyRevenue =
       payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
@@ -130,8 +134,8 @@ export class DashboardService {
     const { count: monthlyCustomers } = await client
       .from("bookings")
       .select("*", { count: "exact", head: true })
-      .gte("start_time", `${startDate}T00:00:00`)
-      .lte("start_time", `${endDate}T23:59:59`)
+      .gte("start_time", `${startDate}T00:00:00+07:00`)
+      .lte("start_time", `${endDate}T23:59:59+07:00`)
       .not("status", "eq", "cancelled");
 
     // Monthly commissions
@@ -156,7 +160,7 @@ export class DashboardService {
 
   async getTherapistPerformance(date?: string) {
     const client = this.supabase.getClient();
-    const targetDate = date || new Date().toISOString().split("T")[0];
+    const targetDate = date || getThaiDate();
 
     // Get all active therapists
     const { data: therapists } = await client
@@ -169,8 +173,8 @@ export class DashboardService {
     const { data: bookings } = await client
       .from("bookings")
       .select("therapist_id, payments(amount, status)")
-      .gte("start_time", `${targetDate}T00:00:00`)
-      .lte("start_time", `${targetDate}T23:59:59`)
+      .gte("start_time", `${targetDate}T00:00:00+07:00`)
+      .lte("start_time", `${targetDate}T23:59:59+07:00`)
       .not("status", "eq", "cancelled");
 
     const performance = therapists?.map((t: any) => {
