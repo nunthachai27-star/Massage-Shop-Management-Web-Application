@@ -55,4 +55,12 @@ export class BookingsController {
   ) {
     return this.bookingsService.updateStatus(id, dto.status, dto.bed_id);
   }
+
+  @Patch(":id/details")
+  updateDetails(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: { therapist_id?: number; service_id?: number; bed_id?: number },
+  ) {
+    return this.bookingsService.updateDetails(id, dto);
+  }
 }

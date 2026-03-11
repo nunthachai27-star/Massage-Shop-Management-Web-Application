@@ -72,6 +72,11 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ status, ...(bedId ? { bed_id: bedId } : {}) }),
     }),
+  updateBookingDetails: (id: number, details: { therapist_id?: number; service_id?: number; bed_id?: number }) =>
+    apiFetch<ApiRecord>(`/bookings/${id}/details`, {
+      method: "PATCH",
+      body: JSON.stringify(details),
+    }),
 
   // Payments
   createPayment: (data: Record<string, unknown>) =>

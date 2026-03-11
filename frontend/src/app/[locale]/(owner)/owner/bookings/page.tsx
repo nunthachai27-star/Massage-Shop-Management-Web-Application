@@ -123,6 +123,13 @@ export default function StaffBookingsPage() {
   const [checkinBookingId, setCheckinBookingId] = useState<number | null>(null);
   const [checkinBedId, setCheckinBedId] = useState(0);
 
+  // Edit booking state
+  const [editBookingId, setEditBookingId] = useState<number | null>(null);
+  const [editTherapistId, setEditTherapistId] = useState(0);
+  const [editServiceId, setEditServiceId] = useState(0);
+  const [editBedId, setEditBedId] = useState(0);
+  const [editSaving, setEditSaving] = useState(false);
+
   useEffect(() => {
     Promise.all([
       api.getBookings(), api.getServices(), api.getTherapists(), api.getBeds(),
@@ -348,6 +355,76 @@ export default function StaffBookingsPage() {
       );
     }
     api.updateBookingStatus(bookingId, "checkout").catch(() => {});
+  };
+
+  // Open edit panel
+  const openEdit = (bookingId: number) => {
+    const booking = bookings.find((b) => b.id === bookingId);
+    if (!booking) return;
+    setEditBookingId(bookingId);
+    setEditTherapistId(booking.therapistId);
+    setEditServiceId(booking.serviceId);
+    setEditBedId(booking.bedId || 0);
+  };
+
+  // Save edit
+  const saveEdit = async () => {
+    if (!editBookingId) return;
+    setEditSaving(true);
+    const booking = bookings.find((b) => b.id === editBookingId);
+    if (!booking) return;
+
+    const changes: { therapist_id?: number; service_id?: number; bed_id?: number } = {};
+    if (editTherapistId !== booking.therapistId) changes.therapist_id = editTherapistId;
+    if (editServiceId !== booking.serviceId) changes.service_id = editServiceId;
+    if (editBedId !== (booking.bedId || 0)) changes.bed_id = editBedId;
+
+    if (Object.keys(changes).length > 0) {
+      // Update frontend state
+      const newService = services.find((s) => s.id === editServiceId);
+      const newEndTime = newService
+        ? new Date(new Date(booking.startTime).getTime() + newService.duration * 60000).toISOString()
+        : booking.endTime;
+
+      // Release old bed if changed
+      if (changes.bed_id && booking.bedId && booking.bedId !== changes.bed_id) {
+        setBeds((prev) =>
+          prev.map((bed) =>
+            bed.id === booking.bedId
+              ? { ...bed, status: "available" as const, currentBookingId: undefined }
+              : bed
+          )
+        );
+      }
+      // Assign new bed
+      if (changes.bed_id) {
+        setBeds((prev) =>
+          prev.map((bed) =>
+            bed.id === changes.bed_id
+              ? { ...bed, status: booking.status === "in_service" ? "in_service" as const : "reserved" as const, currentBookingId: editBookingId }
+              : bed
+          )
+        );
+      }
+
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === editBookingId
+            ? {
+                ...b,
+                ...(changes.therapist_id ? { therapistId: changes.therapist_id } : {}),
+                ...(changes.service_id ? { serviceId: changes.service_id, endTime: newEndTime } : {}),
+                ...(changes.bed_id ? { bedId: changes.bed_id } : {}),
+              }
+            : b
+        )
+      );
+
+      api.updateBookingDetails(editBookingId, changes).catch(() => {});
+    }
+
+    setEditBookingId(null);
+    setEditSaving(false);
   };
 
   // Cancel booking
@@ -769,6 +846,12 @@ export default function StaffBookingsPage() {
                         {t("staff.checkin")}
                       </Button>
                       <button
+                        onClick={() => openEdit(booking.id)}
+                        className="px-3 py-1 rounded-lg text-xs bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-all cursor-pointer"
+                      >
+                        {locale === "th" ? "แก้ไข" : "Edit"}
+                      </button>
+                      <button
                         onClick={() => handleCancel(booking.id)}
                         className="px-3 py-1 rounded-lg text-xs bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-all cursor-pointer"
                       >
@@ -777,9 +860,17 @@ export default function StaffBookingsPage() {
                     </>
                   )}
                   {booking.status === "in_service" && (
-                    <Button size="sm" variant="primary" onClick={() => handleEndService(booking.id)}>
-                      {t("staff.endService")}
-                    </Button>
+                    <>
+                      <Button size="sm" variant="primary" onClick={() => handleEndService(booking.id)}>
+                        {t("staff.endService")}
+                      </Button>
+                      <button
+                        onClick={() => openEdit(booking.id)}
+                        className="px-3 py-1 rounded-lg text-xs bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-all cursor-pointer"
+                      >
+                        {locale === "th" ? "แก้ไข" : "Edit"}
+                      </button>
+                    </>
                   )}
                   {booking.status === "completed" && (
                     <Button size="sm" variant="secondary" onClick={() => handleCheckout(booking.id)}>
@@ -788,6 +879,95 @@ export default function StaffBookingsPage() {
                   )}
                 </div>
               </div>
+
+              {/* Edit Booking Panel */}
+              {editBookingId === booking.id && (
+                <div className="mt-4 pt-4 border-t border-amber-400/20">
+                  <p className="text-amber-400 text-sm font-medium mb-3">
+                    {locale === "th" ? "แก้ไขรายการ" : "Edit Booking"}
+                  </p>
+
+                  {/* Therapist */}
+                  <p className="text-white/50 text-xs mb-2">{locale === "th" ? "หมอนวด" : "Therapist"}</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
+                    {therapists.map((th) => (
+                      <button
+                        key={th.id}
+                        onClick={() => setEditTherapistId(th.id)}
+                        className={`p-2 rounded-lg border text-center transition-all cursor-pointer text-xs ${
+                          editTherapistId === th.id
+                            ? "border-amber-400 bg-amber-500/15 text-amber-400"
+                            : "border-white/10 text-white/60 hover:border-white/30"
+                        }`}
+                      >
+                        {locale === "th" ? th.name.th : th.name.en}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Service */}
+                  <p className="text-white/50 text-xs mb-2">{locale === "th" ? "บริการ" : "Service"}</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+                    {services.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => setEditServiceId(s.id)}
+                        className={`p-2 rounded-lg border text-center transition-all cursor-pointer text-xs ${
+                          editServiceId === s.id
+                            ? "border-amber-400 bg-amber-500/15 text-amber-400"
+                            : "border-white/10 text-white/60 hover:border-white/30"
+                        }`}
+                      >
+                        <p className="font-medium">{locale === "th" ? s.name.th : s.name.en}</p>
+                        <p className="text-white/40 mt-0.5">{s.price}฿</p>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Room */}
+                  <p className="text-white/50 text-xs mb-2">{locale === "th" ? "ห้อง" : "Room"}</p>
+                  <div className="grid grid-cols-4 gap-2 mb-4">
+                    {beds.map((b) => {
+                      const isAvailable = b.status === "available" || b.id === (booking.bedId || 0);
+                      return (
+                        <button
+                          key={b.id}
+                          onClick={() => isAvailable && setEditBedId(b.id)}
+                          disabled={!isAvailable}
+                          className={`p-2 rounded-lg border text-center transition-all text-xs ${
+                            !isAvailable
+                              ? "border-white/5 text-white/20 cursor-not-allowed"
+                              : editBedId === b.id
+                                ? "border-amber-400 bg-amber-500/15 text-amber-400 cursor-pointer"
+                                : "border-white/10 text-white/60 hover:border-white/30 cursor-pointer"
+                          }`}
+                        >
+                          {b.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      className="flex-1"
+                      onClick={saveEdit}
+                      disabled={editSaving}
+                    >
+                      {editSaving ? "..." : locale === "th" ? "บันทึก" : "Save"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      onClick={() => setEditBookingId(null)}
+                    >
+                      {locale === "th" ? "ยกเลิก" : "Cancel"}
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Check-in: Room Selection Panel */}
               {isCheckinOpen && (

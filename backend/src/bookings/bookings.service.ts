@@ -259,6 +259,69 @@ export class BookingsService {
     return updated;
   }
 
+  async updateDetails(id: number, updates: { therapist_id?: number; service_id?: number; bed_id?: number }) {
+    const client = this.supabase.getClient();
+
+    const { data: booking } = await client
+      .from("bookings")
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (!booking) throw new NotFoundException("Booking not found");
+
+    const payload: Record<string, unknown> = {};
+    if (updates.therapist_id) payload.therapist_id = updates.therapist_id;
+    if (updates.service_id) {
+      const { data: service } = await client
+        .from("services")
+        .select("*")
+        .eq("id", updates.service_id)
+        .single();
+      if (!service) throw new NotFoundException("Service not found");
+      payload.service_id = updates.service_id;
+      // Recalculate end_time based on new service duration
+      const startTime = new Date(booking.start_time);
+      payload.end_time = new Date(startTime.getTime() + service.duration * 60000).toISOString();
+      // Update payment amount
+      await client
+        .from("payments")
+        .update({ amount: service.price })
+        .eq("booking_id", id);
+    }
+    if (updates.bed_id) {
+      // Release old bed
+      if (booking.bed_id && booking.bed_id !== updates.bed_id) {
+        await client
+          .from("beds")
+          .update({ status: "available", current_booking_id: null })
+          .eq("id", booking.bed_id);
+      }
+      // Assign new bed
+      payload.bed_id = updates.bed_id;
+      await client
+        .from("beds")
+        .update({ status: booking.status === "in_service" ? "in_service" : "reserved", current_booking_id: id })
+        .eq("id", updates.bed_id);
+    }
+
+    if (Object.keys(payload).length === 0) return booking;
+
+    // Update old therapist to available, new therapist to busy (if in_service)
+    if (updates.therapist_id && updates.therapist_id !== booking.therapist_id && booking.status === "in_service") {
+      await client.from("therapists").update({ status: "available" }).eq("id", booking.therapist_id);
+      await client.from("therapists").update({ status: "busy" }).eq("id", updates.therapist_id);
+    }
+
+    const { data: updated, error } = await client
+      .from("bookings")
+      .update(payload)
+      .eq("id", id)
+      .select("*, services(*), therapists(*), customers(*), beds!bookings_bed_id_fkey(*)")
+      .single();
+    if (error) throw error;
+    return updated;
+  }
+
   async getAvailableSlots(
     therapistId: number,
     date: string,
