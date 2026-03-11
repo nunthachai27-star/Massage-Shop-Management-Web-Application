@@ -13,13 +13,16 @@ import { api } from "@/lib/api";
 import { transformBooking, transformService, transformTherapist, transformBed } from "@/lib/transform";
 
 // Commission calculation
+// Thai massage: 50% of price (400→200, 600→300, 800→400, 1000→500)
+// Aroma/other: 600→100, 800→200, 1000→250
 function getCommission(price: number, isThaiMassage: boolean): number {
-  let commission = 0;
-  if (price >= 1000) commission = 250;
-  else if (price >= 800) commission = 200;
-  else if (price >= 600) commission = 100;
-  else return 0;
-  return isThaiMassage ? Math.round(commission / 2) : commission;
+  if (isThaiMassage) {
+    return Math.round(price / 2);
+  }
+  if (price >= 1000) return 250;
+  if (price >= 800) return 200;
+  if (price >= 600) return 100;
+  return 0;
 }
 
 const statusConfig: Record<string, { label: { th: string; en: string }; variant: "blue" | "gold" | "green" | "gray" }> = {
@@ -39,6 +42,18 @@ export default function StaffSessionPage() {
   const [beds, setBeds] = useState<Bed[]>([]);
   const [now, setNow] = useState<Date | null>(null);
   const [mounted, setMounted] = useState(false);
+
+  // Get logged-in therapist ID from JWT
+  const [myTherapistId, setMyTherapistId] = useState<number | null>(null);
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        if (payload.role === "therapist") setMyTherapistId(payload.id);
+      }
+    } catch {}
+  }, []);
 
   // Check-in state
   const [checkinLoading, setCheckinLoading] = useState<number | null>(null);
@@ -87,14 +102,15 @@ export default function StaffSessionPage() {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
-  // Commission summary for all therapists
-  const allCommissionBookings = bookings.filter(
-    (b) => b.status === "in_service" || b.status === "completed" || b.status === "checkout"
+  // Commission summary for logged-in therapist only
+  const myCommissionBookings = bookings.filter(
+    (b) => (b.status === "in_service" || b.status === "completed" || b.status === "checkout")
+      && (!myTherapistId || b.therapistId === myTherapistId)
   );
-  const totalCommission = allCommissionBookings.reduce((sum, b) => {
+  const totalCommission = myCommissionBookings.reduce((sum, b) => {
     const service = services.find((s) => s.id === b.serviceId);
     if (!service) return sum;
-    const isThaiMassage = service.name.th.includes("แผนไทย");
+    const isThaiMassage = service.name.th.includes("นวดไทย");
     return sum + getCommission(service.price, isThaiMassage);
   }, 0);
 
@@ -264,7 +280,7 @@ export default function StaffSessionPage() {
           </p>
           <div className="mt-3 inline-flex items-center gap-2 bg-emerald-500/15 px-4 py-1.5 rounded-full">
             <span className="text-emerald-300 text-sm font-medium">
-              {allCommissionBookings.length} {locale === "th" ? "รายการ" : "session(s)"}
+              {myCommissionBookings.length} {locale === "th" ? "รายการ" : "session(s)"}
             </span>
           </div>
         </div>
@@ -466,7 +482,7 @@ export default function StaffSessionPage() {
             const service = services.find((s) => s.id === booking.serviceId);
             const therapist = therapists.find((th) => th.id === booking.therapistId);
             const bed = booking.bedId ? beds.find((b) => b.id === booking.bedId) : null;
-            const isThaiMassage = service ? service.name.th.includes("แผนไทย") : false;
+            const isThaiMassage = service ? service.name.th.includes("นวดไทย") : false;
             const bookingCommission = service ? getCommission(service.price, isThaiMassage) : 0;
 
             // Progress calculation for in_service
