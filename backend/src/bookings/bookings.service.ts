@@ -328,25 +328,46 @@ export class BookingsService {
 
     // Send Line notification if therapist or service changed
     try {
-      const changes: string[] = [];
+      const therapistChanged = updates.therapist_id && updates.therapist_id !== booking.therapist_id;
+      const serviceChanged = updates.service_id && updates.service_id !== booking.service_id;
 
-      if (updates.therapist_id && updates.therapist_id !== booking.therapist_id) {
-        const newTherapistName = updated.therapists?.name_th || updated.therapists?.name_en || "-";
-        changes.push(`👩‍⚕️ พนักงาน: ${oldTherapistName} → ${newTherapistName}`);
-      }
-
-      if (updates.service_id && updates.service_id !== booking.service_id) {
+      if (therapistChanged || serviceChanged) {
+        const therapistName = updated.therapists?.name_th || updated.therapists?.name_en || "-";
         const newServiceName = updated.services?.name_th || updated.services?.name_en || "-";
-        changes.push(`💆 บริการ: ${oldServiceName} → ${newServiceName}`);
-      }
-
-      if (changes.length > 0) {
+        const bedName = updated.beds?.name || "-";
         const fmt = (iso: string) => new Date(iso).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" });
         const startTime = updated.start_time ? fmt(updated.start_time) : "-";
         const endTime = updated.end_time ? fmt(updated.end_time) : "-";
 
-        const message = `✏️ แก้ไขการจอง\n⏰ ${startTime} - ${endTime} น.\n${changes.join("\n")}`;
-        await this.lineNotify.send(message);
+        const { data: payment } = await client
+          .from("payments")
+          .select("method, amount")
+          .eq("booking_id", id)
+          .maybeSingle();
+        const methodMap: Record<string, string> = { cash: "เงินสด", transfer: "โอน", bank_transfer: "โอน", credit_card: "บัตรเครดิต" };
+        const payMethod = payment ? (methodMap[payment.method] || payment.method) : "-";
+        const amount = payment ? `${payment.amount} ฿` : "-";
+
+        const lines = [`🔵 เริ่มบริการ (แก้ไขรายการ)`];
+
+        if (therapistChanged) {
+          lines.push(`👩‍⚕️ ${oldTherapistName} → ${therapistName}`);
+        } else {
+          lines.push(`👩‍⚕️ ${therapistName}`);
+        }
+
+        if (serviceChanged) {
+          lines.push(`💆 ${oldServiceName} → ${newServiceName}`);
+        } else {
+          lines.push(`💆 ${newServiceName}`);
+        }
+
+        lines.push(`🛏️ ${bedName}`);
+        lines.push(`⏰ ${startTime} - ${endTime} น.`);
+        lines.push(`💳 ${payMethod}`);
+        lines.push(`💰 ${amount}`);
+
+        await this.lineNotify.send(lines.join("\n"));
       }
     } catch (e) {
       this.logger.warn(`Failed to send Line edit notification: ${e.message}`);
