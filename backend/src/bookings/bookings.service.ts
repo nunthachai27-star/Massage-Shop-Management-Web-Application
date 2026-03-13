@@ -265,10 +265,14 @@ export class BookingsService {
 
     const { data: booking } = await client
       .from("bookings")
-      .select("*")
+      .select("*, services(*), therapists(*)")
       .eq("id", id)
       .single();
     if (!booking) throw new NotFoundException("Booking not found");
+
+    // Keep old names for Line notification comparison
+    const oldTherapistName = booking.therapists?.name_th || booking.therapists?.name_en || "-";
+    const oldServiceName = booking.services?.name_th || booking.services?.name_en || "-";
 
     const payload: Record<string, unknown> = {};
     if (updates.customer_gender) payload.customer_gender = updates.customer_gender;
@@ -321,6 +325,33 @@ export class BookingsService {
       .select("*, services(*), therapists(*), customers(*), beds!bookings_bed_id_fkey(*)")
       .single();
     if (error) throw error;
+
+    // Send Line notification if therapist or service changed
+    try {
+      const changes: string[] = [];
+
+      if (updates.therapist_id && updates.therapist_id !== booking.therapist_id) {
+        const newTherapistName = updated.therapists?.name_th || updated.therapists?.name_en || "-";
+        changes.push(`👩‍⚕️ พนักงาน: ${oldTherapistName} → ${newTherapistName}`);
+      }
+
+      if (updates.service_id && updates.service_id !== booking.service_id) {
+        const newServiceName = updated.services?.name_th || updated.services?.name_en || "-";
+        changes.push(`💆 บริการ: ${oldServiceName} → ${newServiceName}`);
+      }
+
+      if (changes.length > 0) {
+        const fmt = (iso: string) => new Date(iso).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" });
+        const startTime = updated.start_time ? fmt(updated.start_time) : "-";
+        const endTime = updated.end_time ? fmt(updated.end_time) : "-";
+
+        const message = `✏️ แก้ไขการจอง\n⏰ ${startTime} - ${endTime} น.\n${changes.join("\n")}`;
+        await this.lineNotify.send(message);
+      }
+    } catch (e) {
+      this.logger.warn(`Failed to send Line edit notification: ${e.message}`);
+    }
+
     return updated;
   }
 
