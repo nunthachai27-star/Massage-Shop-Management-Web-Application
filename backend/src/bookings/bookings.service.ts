@@ -193,7 +193,7 @@ export class BookingsService {
             .select("method, amount")
             .eq("booking_id", id)
             .maybeSingle();
-          const methodMap: Record<string, string> = { cash: "เงินสด", transfer: "โอน", credit_card: "บัตรเครดิต" };
+          const methodMap: Record<string, string> = { cash: "เงินสด", transfer: "โอน", bank_transfer: "โอน", credit_card: "บัตรเครดิต" };
           const payMethod = payment ? (methodMap[payment.method] || payment.method) : "-";
           const amount = payment ? `${payment.amount} ฿` : "-";
           const fmt = (iso: string) => new Date(iso).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" });
