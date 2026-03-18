@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { ScheduleModule } from "@nestjs/schedule";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { APP_GUARD } from "@nestjs/core";
 import { SupabaseModule } from "./supabase/supabase.module";
@@ -18,6 +19,7 @@ import { LineNotifyModule } from "./line-notify/line-notify.module";
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([
       { name: "short", ttl: 1000, limit: 5 },   // 5 requests per second
       { name: "medium", ttl: 10000, limit: 30 }, // 30 requests per 10 seconds
