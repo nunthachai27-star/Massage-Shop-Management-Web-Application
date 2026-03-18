@@ -45,7 +45,7 @@ export class BookingsService {
       const { data: stuck, error: stuckError } = await client
         .from("bookings")
         .select(baseSelect)
-        .in("status", ["in_service", "completed"])
+        .or("status.eq.in_service,status.eq.completed")
         .gte("start_time", `${yesterdayStr}T00:00:00`)
         .lt("start_time", `${date}T00:00:00`)
         .order("start_time", { ascending: true });
