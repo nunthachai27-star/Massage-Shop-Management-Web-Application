@@ -36,12 +36,17 @@ export class BookingsService {
     const { data, error } = await query;
     if (error) throw error;
 
-    // Also fetch stuck bookings (in_service/completed from previous days)
+    // Also fetch stuck bookings (in_service/completed from previous day only)
     if (date && !status) {
+      const yesterday = new Date(date);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split("T")[0];
+
       const { data: stuck, error: stuckError } = await client
         .from("bookings")
         .select(baseSelect)
         .in("status", ["in_service", "completed"])
+        .gte("start_time", `${yesterdayStr}T00:00:00`)
         .lt("start_time", `${date}T00:00:00`)
         .order("start_time", { ascending: true });
 
