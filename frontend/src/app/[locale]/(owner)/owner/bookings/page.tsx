@@ -789,19 +789,23 @@ export default function StaffBookingsPage() {
         </Card>
       )}
 
-      {/* Booking List — today only */}
+      {/* Booking List — today + stuck from previous days */}
       <div className="space-y-4">
         {[...bookings]
-          .filter((b) => {
-            const today = new Date();
-            const bookingDate = new Date(b.startTime);
-            return (
-              bookingDate.getFullYear() === today.getFullYear() &&
-              bookingDate.getMonth() === today.getMonth() &&
-              bookingDate.getDate() === today.getDate()
-            );
-          })
           .sort((a, b) => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const aDate = new Date(a.startTime);
+            aDate.setHours(0, 0, 0, 0);
+            const bDate = new Date(b.startTime);
+            bDate.setHours(0, 0, 0, 0);
+            const aIsStuck = aDate.getTime() < today.getTime() && (a.status === "in_service" || a.status === "completed");
+            const bIsStuck = bDate.getTime() < today.getTime() && (b.status === "in_service" || b.status === "completed");
+
+            // Stuck bookings always on top
+            if (aIsStuck && !bIsStuck) return -1;
+            if (!aIsStuck && bIsStuck) return 1;
+
             // Active statuses first, completed/checkout last
             const statusOrder: Record<string, number> = {
               in_service: 0,
@@ -826,9 +830,14 @@ export default function StaffBookingsPage() {
             ? customerList.find((c) => c.id === booking.customerId)
             : null;
           const isCheckinOpen = checkinBookingId === booking.id;
+          const todayStart = new Date();
+          todayStart.setHours(0, 0, 0, 0);
+          const bookingDay = new Date(booking.startTime);
+          bookingDay.setHours(0, 0, 0, 0);
+          const isStuck = bookingDay.getTime() < todayStart.getTime() && (booking.status === "in_service" || booking.status === "completed");
 
           return (
-            <Card key={booking.id}>
+            <Card key={booking.id} className={isStuck ? "border-red-500/50 bg-red-500/5" : undefined}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-3 flex-wrap">
@@ -837,6 +846,11 @@ export default function StaffBookingsPage() {
                       <span className="text-accent-gold/60 font-mono text-xs">{customer.code}</span>
                     )}
                     <Badge variant={config.variant}>{locale === "th" ? config.label.th : config.label.en}</Badge>
+                    {isStuck && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-medium animate-pulse">
+                        {locale === "th" ? "ค้างจากวันก่อน" : "Stuck from previous day"}
+                      </span>
+                    )}
                     {customer && (
                       <LoyaltyBadge visitCount={customer.visitCount} locale={locale} />
                     )}
@@ -898,15 +912,23 @@ export default function StaffBookingsPage() {
                   )}
                   {booking.status === "in_service" && (
                     <>
-                      <Button size="sm" variant="primary" onClick={() => handleEndService(booking.id)}>
-                        {t("staff.endService")}
-                      </Button>
-                      <button
-                        onClick={() => openEdit(booking.id)}
-                        className="px-3 py-1 rounded-lg text-xs bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-all cursor-pointer"
-                      >
-                        {locale === "th" ? "แก้ไข" : "Edit"}
-                      </button>
+                      {isStuck ? (
+                        <Button size="sm" variant="secondary" onClick={() => handleCheckout(booking.id)}>
+                          {t("staff.checkout")}
+                        </Button>
+                      ) : (
+                        <>
+                          <Button size="sm" variant="primary" onClick={() => handleEndService(booking.id)}>
+                            {t("staff.endService")}
+                          </Button>
+                          <button
+                            onClick={() => openEdit(booking.id)}
+                            className="px-3 py-1 rounded-lg text-xs bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-all cursor-pointer"
+                          >
+                            {locale === "th" ? "แก้ไข" : "Edit"}
+                          </button>
+                        </>
+                      )}
                     </>
                   )}
                   {booking.status === "completed" && (

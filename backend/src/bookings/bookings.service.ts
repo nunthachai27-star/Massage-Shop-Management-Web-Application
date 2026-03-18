@@ -18,10 +18,12 @@ export class BookingsService {
   ) {}
 
   async findAll(status?: string, date?: string) {
-    let query = this.supabase
-      .getClient()
+    const client = this.supabase.getClient();
+    const baseSelect = "*, services(*), therapists(*), customers(*), beds!bookings_bed_id_fkey(*)";
+
+    let query = client
       .from("bookings")
-      .select("*, services(*), therapists(*), customers(*), beds!bookings_bed_id_fkey(*)")
+      .select(baseSelect)
       .order("start_time", { ascending: true });
 
     if (status) query = query.eq("status", status);
@@ -33,6 +35,21 @@ export class BookingsService {
 
     const { data, error } = await query;
     if (error) throw error;
+
+    // Also fetch stuck bookings (in_service/completed from previous days)
+    if (date && !status) {
+      const { data: stuck, error: stuckError } = await client
+        .from("bookings")
+        .select(baseSelect)
+        .in("status", ["in_service", "completed"])
+        .lt("start_time", `${date}T00:00:00`)
+        .order("start_time", { ascending: true });
+
+      if (!stuckError && stuck && stuck.length > 0) {
+        return [...stuck, ...(data || [])];
+      }
+    }
+
     return data;
   }
 
@@ -224,6 +241,13 @@ export class BookingsService {
             .from("beds")
             .update({ status: "available", current_booking_id: null })
             .eq("id", effectiveBedId);
+        }
+        // Release therapist if coming from in_service (e.g. stuck bookings)
+        if (booking.status === "in_service" && booking.therapist_id) {
+          await client
+            .from("therapists")
+            .update({ status: "available" })
+            .eq("id", booking.therapist_id);
         }
         // Auto-confirm the associated payment
         {
