@@ -133,8 +133,9 @@ export default function StaffBookingsPage() {
   const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
+    const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
     Promise.all([
-      api.getBookings(), api.getServices(), api.getTherapists(), api.getBeds(),
+      api.getBookings(undefined, today), api.getServices(), api.getTherapists(), api.getBeds(),
     ]).then(([rawB, rawS, rawT, rawBd]) => {
       setBookings(rawB.map(transformBooking));
       setServices(rawS.map(transformService));
