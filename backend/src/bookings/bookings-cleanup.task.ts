@@ -6,6 +6,7 @@ import { LineNotifyService } from "../line-notify/line-notify.service";
 @Injectable()
 export class BookingsCleanupTask {
   private readonly logger = new Logger(BookingsCleanupTask.name);
+  private remindedBookingIds = new Set<number>();
 
   constructor(
     private supabase: SupabaseService,
@@ -24,6 +25,53 @@ export class BookingsCleanupTask {
   async handleMorningCleanup() {
     this.logger.log("Running morning stuck-booking cleanup...");
     await this.cleanupStuckBookings();
+  }
+
+  /** Runs every 5 minutes to check for overtime bookings */
+  @Cron("*/5 * * * *")
+  async handleOvertimeReminder() {
+    const client = this.supabase.getClient();
+    const tenMinAgo = new Date(Date.now() - 10 * 60000).toISOString();
+
+    const { data: overtime, error } = await client
+      .from("bookings")
+      .select("id, customer_name, end_time, beds!bookings_bed_id_fkey(name), services(name_th), therapists(name_th)")
+      .eq("status", "in_service")
+      .lt("end_time", tenMinAgo);
+
+    if (error || !overtime || overtime.length === 0) return;
+
+    // Filter out already-reminded bookings
+    const newOvertime = overtime.filter((b) => !this.remindedBookingIds.has(b.id));
+    if (newOvertime.length === 0) return;
+
+    this.logger.log(`Found ${newOvertime.length} overtime booking(s), sending reminder...`);
+
+    const lines = [`🔔 แจ้งเตือนอัตโนมัติ: เกินเวลา 10 นาที กรุณากดจบบริการ`];
+    for (const b of newOvertime) {
+      const therapist = (b.therapists as any)?.name_th || "-";
+      const service = (b.services as any)?.name_th || "-";
+      const bed = (b.beds as any)?.name || "-";
+      const endTime = new Date(b.end_time).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" });
+      lines.push(`━━━━━━━━━━━━━━━`);
+      lines.push(`👩‍⚕️ ${therapist}`);
+      lines.push(`💆 ${service} | 🛏️ ${bed}`);
+      lines.push(`👤 ${b.customer_name || "-"}`);
+      lines.push(`⏰ สิ้นสุด ${endTime} น.`);
+      this.remindedBookingIds.add(b.id);
+    }
+
+    try {
+      await this.lineNotify.send(lines.join("\n"));
+    } catch (e) {
+      this.logger.warn(`Failed to send overtime reminder: ${e.message}`);
+    }
+
+    // Clean up old IDs (keep only recent ones to prevent memory leak)
+    if (this.remindedBookingIds.size > 200) {
+      const idsToKeep = overtime.map((b) => b.id);
+      this.remindedBookingIds = new Set(idsToKeep);
+    }
   }
 
   async cleanupStuckBookings() {
