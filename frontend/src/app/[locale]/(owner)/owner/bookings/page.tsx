@@ -330,6 +330,27 @@ export default function StaffBookingsPage() {
     setCheckinBedId(0);
   };
 
+  // Remind therapist to end service via Line
+  const handleRemindTherapist = async (bookingId: number) => {
+    const booking = bookings.find((b) => b.id === bookingId);
+    if (!booking) return;
+    const therapist = therapists.find((th) => th.id === booking.therapistId);
+    const service = services.find((s) => s.id === booking.serviceId);
+    const bed = booking.bedId ? beds.find((b) => b.id === booking.bedId) : null;
+    const therapistName = therapist ? (locale === "th" ? therapist.name.th : therapist.name.en) : "-";
+    const serviceName = service ? (locale === "th" ? service.name.th : service.name.en) : "-";
+    const endTimeStr = new Date(booking.endTime).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" });
+
+    const msg = `🔔 แจ้งเตือน: กรุณากดจบบริการ\n👩‍⚕️ ${therapistName}\n💆 ${serviceName}${bed ? `\n🛏️ ${bed.name}` : ""}\n⏰ สิ้นสุด ${endTimeStr} น.\n👤 ${booking.customerName}`;
+
+    try {
+      await api.sendLineMessage(msg);
+      alert(locale === "th" ? "ส่งแจ้งเตือนแล้ว" : "Reminder sent");
+    } catch {
+      alert(locale === "th" ? "ส่งแจ้งเตือนไม่สำเร็จ" : "Failed to send reminder");
+    }
+  };
+
   // End service
   const handleEndService = (bookingId: number) => {
     const booking = bookings.find((b) => b.id === bookingId);
@@ -958,6 +979,12 @@ export default function StaffBookingsPage() {
                           </button>
                         </>
                       )}
+                      <button
+                        onClick={() => handleRemindTherapist(booking.id)}
+                        className="px-3 py-1 rounded-lg text-xs bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 transition-all cursor-pointer"
+                      >
+                        {locale === "th" ? "🔔 แจ้งเตือน" : "🔔 Remind"}
+                      </button>
                     </>
                   )}
                   {booking.status === "completed" && (
