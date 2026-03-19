@@ -103,6 +103,13 @@ export default function StaffBookingsPage() {
   const [beds, setBeds] = useState<Bed[]>([]);
   const [customerList, setCustomerList] = useState<Customer[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+
+  // Update "now" every 30 seconds for countdown timers
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Customer selection state
   const [customerSearch, setCustomerSearch] = useState("");
@@ -888,6 +895,27 @@ export default function StaffBookingsPage() {
                         {" - "}
                         {new Date(booking.endTime).toLocaleTimeString("th", { hour: "2-digit", minute: "2-digit" })}
                       </span>
+                      {booking.status === "in_service" && (() => {
+                        const remaining = new Date(booking.endTime).getTime() - now;
+                        if (remaining <= 0) {
+                          return (
+                            <span className="ml-2 text-red-400 text-xs font-medium">
+                              ({locale === "th" ? "เกินเวลาแล้ว" : "Overtime"})
+                            </span>
+                          );
+                        }
+                        const mins = Math.ceil(remaining / 60000);
+                        const hrs = Math.floor(mins / 60);
+                        const remMins = mins % 60;
+                        const timeStr = hrs > 0
+                          ? `${hrs} ${locale === "th" ? "ชม." : "hr"} ${remMins} ${locale === "th" ? "น." : "min"}`
+                          : `${remMins} ${locale === "th" ? "นาที" : "min"}`;
+                        return (
+                          <span className={`ml-2 text-xs font-medium ${mins <= 10 ? "text-amber-400" : "text-green-400"}`}>
+                            ({locale === "th" ? `เหลือ ${timeStr}` : `${timeStr} left`})
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
