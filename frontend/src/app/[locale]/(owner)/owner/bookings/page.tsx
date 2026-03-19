@@ -287,11 +287,10 @@ export default function StaffBookingsPage() {
       // Send Line notification for new booking
       const therapist = therapists.find((th) => th.id === therapistId);
       const therapistName = therapist ? (therapist.name.en || therapist.name.th) : "-";
-      const minsUntil = Math.round((start.getTime() - Date.now()) / 60000);
-      const timeStr = minsUntil > 0 ? `อีก ${minsUntil} นาที` : "ตอนนี้";
+      const bookingTime = start.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" });
       const genderNote = bookingGender === "female" ? " (ลูกค้าผู้หญิง)" : "";
       api.sendLineMessage(
-        `📌 @${therapistName} มีจองคุณ${customer.name}${timeStr}ลูกค้าถึงค่ะ${genderNote}`
+        `📌 @${therapistName} มีจองคุณ${customer.name} เวลา ${bookingTime} น. ค่ะ${genderNote}`
       ).catch(() => {});
     } catch {
       // use local state
