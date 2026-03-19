@@ -94,20 +94,19 @@ export default function TherapistPerformancePage() {
     if (worked.length === 0) return;
 
     const lines = [
-      `\n📋 สรุปผลงานวันที่ ${date}`,
+      `\n📋 สรุปค่าคอมมิชชั่นวันที่ ${date}`,
       `━━━━━━━━━━━━━━━`,
     ];
     for (const c of worked) {
       const name = c.therapists?.name_th || "ไม่ทราบ";
       lines.push(
         `🧑‍⚕️ ${name}`,
-        `   งาน: ${c.total_sessions} | รายได้: ฿${c.total_revenue.toLocaleString()} | คอม: ฿${c.total_commission.toLocaleString()}`,
+        `   งาน: ${c.total_sessions} | ค่าคอม: ฿${c.total_commission.toLocaleString()}`,
       );
     }
     lines.push(
       `━━━━━━━━━━━━━━━`,
-      `💰 รวมรายได้: ฿${totalRevenue.toLocaleString()}`,
-      `🧑‍⚕️ รวมค่าคอม: ฿${totalCommission.toLocaleString()}`,
+      `💰 รวมค่าคอม: ฿${totalCommission.toLocaleString()}`,
       `👥 รวมงาน: ${totalSessions} งาน`,
     );
 
@@ -115,6 +114,24 @@ export default function TherapistPerformancePage() {
     setSendResult(null);
     try {
       await api.sendLineMessage(lines.join("\n"));
+
+      // Mark all pending commissions as paid
+      const pendingOnes = worked.filter((c) => c.status === "pending" && c.total_commission > 0);
+      const updates = await Promise.allSettled(
+        pendingOnes.map((c) => api.markCommissionPaid(c.id))
+      );
+      setCommissions((prev) =>
+        prev.map((c) => {
+          const idx = pendingOnes.findIndex((p) => p.id === c.id);
+          if (idx === -1) return c;
+          const result = updates[idx];
+          if (result.status === "fulfilled") {
+            return toCommission(result.value);
+          }
+          return c;
+        })
+      );
+
       setSendResult("success");
     } catch {
       setSendResult("error");
