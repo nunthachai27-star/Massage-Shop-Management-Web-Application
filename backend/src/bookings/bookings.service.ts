@@ -221,8 +221,9 @@ export class BookingsService {
           const fmt = (iso: string) => new Date(iso).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" });
           const startTime = updated.start_time ? fmt(updated.start_time) : "-";
           const endTime = updated.end_time ? fmt(updated.end_time) : "-";
+          const genderNote = updated.customer_gender === "female" ? "\n👩 ลูกค้าผู้หญิง" : "";
           await this.lineNotify.send(
-            `🔵 เริ่มบริการ\n👩‍⚕️ ${therapistName}\n💆 ${serviceName}\n🛏️ ${bedName}\n⏰ ${startTime} - ${endTime} น.\n💳 ${payMethod}\n💰 ${amount}`,
+            `🔵 เริ่มบริการ\n👩‍⚕️ ${therapistName}\n💆 ${serviceName}\n🛏️ ${bedName}\n⏰ ${startTime} - ${endTime} น.\n💳 ${payMethod}\n💰 ${amount}${genderNote}`,
           );
         } catch (e) {
           this.logger.warn(`Failed to send Line in_service notification: ${e.message}`);
@@ -395,6 +396,9 @@ export class BookingsService {
         lines.push(`⏰ ${startTime} - ${endTime} น.`);
         lines.push(`💳 ${payMethod}`);
         lines.push(`💰 ${amount}`);
+        if (updated.customer_gender === "female") {
+          lines.push(`👩 ลูกค้าผู้หญิง`);
+        }
 
         await this.lineNotify.send(lines.join("\n"));
       }
