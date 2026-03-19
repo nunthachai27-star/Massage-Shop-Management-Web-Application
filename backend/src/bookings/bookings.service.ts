@@ -159,6 +159,20 @@ export class BookingsService {
       status: "pending",
     });
 
+    // 7. Send Line notification for new booking
+    try {
+      const therapistName = booking.therapists?.name_en || booking.therapists?.name_th || "-";
+      const customerName = dto.customer_name;
+      const minsUntil = Math.round((startTime.getTime() - Date.now()) / 60000);
+      const timeStr = minsUntil > 0 ? `อีก ${minsUntil} นาที` : "ตอนนี้";
+      const genderNote = dto.customer_gender === "female" ? " (ลูกค้าผู้หญิง)" : "";
+      await this.lineNotify.send(
+        `📌 @${therapistName} มีจองคุณ${customerName}${timeStr}ลูกค้าถึงค่ะ${genderNote}`,
+      );
+    } catch (e) {
+      this.logger.warn(`Failed to send Line booking notification: ${e.message}`);
+    }
+
     return booking;
   }
 
