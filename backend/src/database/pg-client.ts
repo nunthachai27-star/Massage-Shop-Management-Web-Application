@@ -98,6 +98,12 @@ export class PgQueryBuilder {
   lt(field: string, value: unknown) { this.conds.push(`${this.resolveField(field)} < ${this.p(value)}`); return this; }
   gte(field: string, value: unknown) { this.conds.push(`${this.resolveField(field)} >= ${this.p(value)}`); return this; }
   lte(field: string, value: unknown) { this.conds.push(`${this.resolveField(field)} <= ${this.p(value)}`); return this; }
+  in(field: string, values: unknown[]) {
+    if (!values.length) { this.conds.push("FALSE"); return this; }
+    const placeholders = values.map(v => this.p(v)).join(", ");
+    this.conds.push(`${this.resolveField(field)} IN (${placeholders})`);
+    return this;
+  }
 
   not(field: string, operator: string, value: unknown) {
     const f = this.resolveField(field);
