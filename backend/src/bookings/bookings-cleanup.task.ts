@@ -82,7 +82,7 @@ export class BookingsCleanupTask {
     const { data: stuckBookings, error } = await client
       .from("bookings")
       .select("id, status, bed_id, therapist_id, customer_name, services(name_th, name_en), therapists(name_th, name_en)")
-      .or("status.eq.in_service,status.eq.completed")
+      .in("status", ["in_service", "completed"])
       .lt("end_time", now);
 
     if (error) {
