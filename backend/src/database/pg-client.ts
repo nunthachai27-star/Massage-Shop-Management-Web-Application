@@ -30,7 +30,7 @@ export class PgClient {
 export class PgQueryBuilder {
   private pool: Pool;
   private tbl: string;
-  private op: "select" | "insert" | "update" | "upsert" = "select";
+  private op: "select" | "insert" | "update" | "upsert" | "delete" = "select";
   private cols = "*";
   private rels: Rel[] = [];
   private revRels: RevRel[] = [];
@@ -90,6 +90,7 @@ export class PgQueryBuilder {
   upsert(data: unknown[], opts?: { onConflict?: string }) {
     this.op = "upsert"; this.insData = data; this.upsertConflict = opts?.onConflict || "id"; return this;
   }
+  delete() { this.op = "delete"; return this; }
 
   /* ── where conditions ── */
   eq(field: string, value: unknown) { this.conds.push(`${this.resolveField(field)} = ${this.p(value)}`); return this; }
@@ -180,6 +181,7 @@ export class PgQueryBuilder {
       if (this.op === "insert") return await this.execInsert();
       if (this.op === "update") return await this.execUpdate();
       if (this.op === "upsert") return await this.execUpsert();
+      if (this.op === "delete") return await this.execDelete();
       return { data: null, error: null };
     } catch (error) {
       return { data: null, error };
@@ -322,6 +324,14 @@ export class PgQueryBuilder {
     if (!hasReturn) return { data: null, error: null };
     const row = this._single ? (res.rows[0] || null) : res.rows;
     return { data: row, error: row ? null : { message: "No rows found" } };
+  }
+
+  /* ── DELETE execution ── */
+  private async execDelete() {
+    const where = this.conds.length ? `WHERE ${this.conds.join(" AND ")}` : "";
+    const sql = `DELETE FROM ${this.tbl} ${where}`;
+    await this.pool.query(sql, this.vals);
+    return { data: null, error: null };
   }
 
   /* ── UPSERT execution ── */
