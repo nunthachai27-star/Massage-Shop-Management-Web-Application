@@ -534,7 +534,7 @@ export default function StaffBookingsPage() {
   };
 
   const confirmVoid = () => {
-    if (!voidBookingId) return;
+    if (voidBookingId === null) return;
     const booking = bookings.find((b) => b.id === voidBookingId);
     setBookings((prev) =>
       prev.map((b) =>
