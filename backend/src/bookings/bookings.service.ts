@@ -7,6 +7,7 @@ import {
 import { SupabaseService } from "../supabase/supabase.service";
 import { CreateBookingDto } from "./dto/create-booking.dto";
 import { LineNotifyService } from "../line-notify/line-notify.service";
+import { buildVoidMessage, shouldNotifyVoid } from "./void-notification";
 
 @Injectable()
 export class BookingsService {
@@ -283,6 +284,29 @@ export class BookingsService {
             .from("therapists")
             .update({ status: "available" })
             .eq("id", booking.therapist_id);
+        }
+        // Delete associated payment (if any) — voiding erases the payment trace
+        await client.from("payments").delete().eq("booking_id", id);
+
+        // Notify therapist only when voiding a booking that was in_service / completed / checkout.
+        // Normal "cancel before service" (booked → cancelled) stays silent.
+        if (shouldNotifyVoid(booking.status)) {
+          try {
+            const therapistName =
+              updated.therapists?.name_th || updated.therapists?.name_en || null;
+            const serviceName =
+              updated.services?.name_th || updated.services?.name_en || null;
+            await this.lineNotify.send(
+              buildVoidMessage({
+                therapistName,
+                serviceName,
+                startTime: updated.start_time ?? null,
+                endTime: updated.end_time ?? null,
+              }),
+            );
+          } catch (e) {
+            this.logger.warn(`Failed to send Line void notification: ${e.message}`);
+          }
         }
         break;
     }
