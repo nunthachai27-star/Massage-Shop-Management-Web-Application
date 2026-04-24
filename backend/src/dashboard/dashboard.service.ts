@@ -170,6 +170,16 @@ export class DashboardService {
       .not("status", "eq", "cancelled")
       .order("start_time", { ascending: true });
 
+    // Pre-fetch therapists by id for breakdown — bypasses any issue with the relation join
+    // returning null on booking.therapists (seen on some rows in production)
+    const { data: allTherapists } = await client
+      .from("therapists")
+      .select("id, name_th, name_en");
+    const therapistById = new Map<number, { id: number; name_th: string; name_en: string }>();
+    for (const t of (allTherapists as { id: number; name_th: string; name_en: string }[]) || []) {
+      therapistById.set(t.id, t);
+    }
+
     // 2. Summary
     let totalRevenue = 0;
     let totalCash = 0;
@@ -198,7 +208,6 @@ export class DashboardService {
 
     for (const b of bookings || []) {
       const service = b.services;
-      const therapist = b.therapists;
       const payment = b.payments?.[0];
       const amount = payment ? Number(payment.amount) : 0;
       const method = payment?.method || "cash";
@@ -228,11 +237,14 @@ export class DashboardService {
         serviceMap.set(service.id, existing);
       }
 
-      // Therapist breakdown
-      if (therapist) {
-        const existing = therapistMap.get(therapist.id) || {
-          name_th: therapist.name_th,
-          name_en: therapist.name_en,
+      // Therapist breakdown — use therapist_id from the booking row to avoid
+      // missing entries when the joined `therapists` relation is unexpectedly null
+      const tid = b.therapist_id;
+      const tInfo = tid ? therapistById.get(tid) : undefined;
+      if (tInfo) {
+        const existing = therapistMap.get(tInfo.id) || {
+          name_th: tInfo.name_th,
+          name_en: tInfo.name_en,
           sessions: 0,
           revenue: 0,
           commission: 0,
@@ -240,7 +252,7 @@ export class DashboardService {
         existing.sessions++;
         existing.revenue += amount;
         existing.commission += commission;
-        therapistMap.set(therapist.id, existing);
+        therapistMap.set(tInfo.id, existing);
       }
 
       // Daily breakdown
