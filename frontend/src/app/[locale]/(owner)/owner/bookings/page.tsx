@@ -104,6 +104,11 @@ export default function StaffBookingsPage() {
   const [beds, setBeds] = useState<Bed[]>([]);
   const [customerList, setCustomerList] = useState<Customer[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(() =>
+    new Date().toLocaleDateString("en-CA"),
+  );
+  const today = new Date().toLocaleDateString("en-CA");
+  const isToday = selectedDate === today;
   const [now, setNow] = useState(() => Date.now());
 
   // Update "now" every 30 seconds for countdown timers
@@ -146,16 +151,20 @@ export default function StaffBookingsPage() {
   const [voidCommissionAmount, setVoidCommissionAmount] = useState(0);
 
   useEffect(() => {
-    const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
     Promise.all([
-      api.getBookings(undefined, today), api.getServices(), api.getTherapists(), api.getBeds(),
-    ]).then(([rawB, rawS, rawT, rawBd]) => {
-      setBookings(rawB.map(transformBooking));
+      api.getServices(), api.getTherapists(), api.getBeds(),
+    ]).then(([rawS, rawT, rawBd]) => {
       setServices(rawS.map(transformService));
       setTherapists(rawT.map(transformTherapist));
       setBeds(rawBd.map(transformBed));
     }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    api.getBookings(undefined, selectedDate)
+      .then((rawB) => setBookings(rawB.map(transformBooking)))
+      .catch(() => {});
+  }, [selectedDate]);
 
   const localSearch = useCallback((query: string) => {
     const q = query.toLowerCase();
@@ -561,17 +570,38 @@ export default function StaffBookingsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4 md:mb-6">
+      <div className="flex items-center justify-between mb-4 md:mb-6 gap-3 flex-wrap">
         <h1 className="font-heading text-xl md:text-2xl text-white">{t("staff.bookings")}</h1>
-        <Button
-          variant={showForm ? "danger" : "primary"}
-          size="sm"
-          onClick={() => setShowForm(!showForm)}
-        >
-          {showForm
-            ? (locale === "th" ? "ยกเลิก" : "Cancel")
-            : (locale === "th" ? "+ เพิ่มการจอง" : "+ New Booking")}
-        </Button>
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => {
+              setSelectedDate(e.target.value || today);
+              setShowForm(false);
+            }}
+            className="bg-surface-dark border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm focus:border-accent-gold focus:outline-none"
+          />
+          {!isToday && (
+            <button
+              onClick={() => setSelectedDate(today)}
+              className="px-3 py-1.5 rounded-lg text-xs border border-white/20 text-white/70 hover:border-white/40 cursor-pointer"
+            >
+              {locale === "th" ? "กลับวันนี้" : "Today"}
+            </button>
+          )}
+          {isToday && (
+            <Button
+              variant={showForm ? "danger" : "primary"}
+              size="sm"
+              onClick={() => setShowForm(!showForm)}
+            >
+              {showForm
+                ? (locale === "th" ? "ยกเลิก" : "Cancel")
+                : (locale === "th" ? "+ เพิ่มการจอง" : "+ New Booking")}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Add Booking Form */}
