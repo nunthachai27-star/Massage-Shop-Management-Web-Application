@@ -1057,12 +1057,34 @@ export default function StaffBookingsPage() {
                       >
                         {locale === "th" ? "🔔 แจ้งเตือน" : "🔔 Remind"}
                       </button>
+                      <button
+                        onClick={() => openVoid(booking.id)}
+                        className="px-3 py-1 rounded-lg text-xs bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-all cursor-pointer"
+                      >
+                        {locale === "th" ? "ยกเลิกรายการ" : "Void"}
+                      </button>
                     </>
                   )}
                   {booking.status === "completed" && (
-                    <Button size="sm" variant="secondary" onClick={() => handleCheckout(booking.id)}>
-                      {t("staff.checkout")}
-                    </Button>
+                    <>
+                      <Button size="sm" variant="secondary" onClick={() => handleCheckout(booking.id)}>
+                        {t("staff.checkout")}
+                      </Button>
+                      <button
+                        onClick={() => openVoid(booking.id)}
+                        className="px-3 py-1 rounded-lg text-xs bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-all cursor-pointer"
+                      >
+                        {locale === "th" ? "ยกเลิกรายการ" : "Void"}
+                      </button>
+                    </>
+                  )}
+                  {booking.status === "checkout" && (
+                    <button
+                      onClick={() => openVoid(booking.id)}
+                      className="px-3 py-1 rounded-lg text-xs bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-all cursor-pointer"
+                    >
+                      {locale === "th" ? "ยกเลิกรายการ" : "Void"}
+                    </button>
                   )}
                 </div>
               </div>
@@ -1177,6 +1199,43 @@ export default function StaffBookingsPage() {
                     >
                       {locale === "th" ? "ยกเลิก" : "Cancel"}
                     </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Void confirmation panel */}
+              {voidBookingId === booking.id && (
+                <div className="mt-4 pt-4 border-t border-red-400/20">
+                  <p className="text-red-400 text-sm font-medium mb-2">
+                    {locale === "th"
+                      ? `ยกเลิกรายการของ ${booking.customerName} ?`
+                      : `Void booking for ${booking.customerName}?`}
+                  </p>
+                  <p className="text-white/70 text-xs mb-2">
+                    {locale === "th"
+                      ? `หมอ ${therapist ? therapist.name.th : "-"} จะไม่ได้รับค่าคอม ฿${voidCommissionAmount} ของรายการนี้`
+                      : `Therapist ${therapist ? therapist.name.en : "-"} will lose ฿${voidCommissionAmount} commission for this booking`}
+                  </p>
+                  {voidCommissionPaid && (
+                    <p className="text-amber-400 text-xs mb-3">
+                      {locale === "th"
+                        ? `⚠️ ค่าคอมของวันนี้จ่ายไปแล้ว — ต้องเรียกคืน ฿${voidCommissionAmount} จากหมอเอง`
+                        : `⚠️ Today's commission is already paid — you must recover ฿${voidCommissionAmount} from the therapist manually`}
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={cancelVoid}
+                      className="px-4 py-1.5 rounded-lg text-xs border border-white/20 text-white/70 hover:border-white/40 cursor-pointer"
+                    >
+                      {locale === "th" ? "ไม่ยกเลิก" : "Keep"}
+                    </button>
+                    <button
+                      onClick={confirmVoid}
+                      className="px-4 py-1.5 rounded-lg text-xs bg-red-500 text-white hover:bg-red-600 cursor-pointer"
+                    >
+                      {locale === "th" ? "ยืนยันการยกเลิก" : "Confirm void"}
+                    </button>
                   </div>
                 </div>
               )}
