@@ -12,6 +12,7 @@ import { beds as mockBeds, type Bed } from "@/data/beds";
 import { customers as mockCustomers, createCustomer, type Customer } from "@/data/customers";
 import { api } from "@/lib/api";
 import { transformBooking, transformService, transformTherapist, transformBed } from "@/lib/transform";
+import { calcCommission } from "@/lib/commission";
 
 const statusConfig: Record<string, { label: { th: string; en: string }; variant: "blue" | "gold" | "green" | "gray" | "red" }> = {
   booked: { label: { th: "จองแล้ว", en: "Booked" }, variant: "blue" },
@@ -138,6 +139,11 @@ export default function StaffBookingsPage() {
   const [editBedId, setEditBedId] = useState(0);
   const [editGender, setEditGender] = useState<"male" | "female">("male");
   const [editSaving, setEditSaving] = useState(false);
+
+  // Void booking state (post-service cancellation)
+  const [voidBookingId, setVoidBookingId] = useState<number | null>(null);
+  const [voidCommissionPaid, setVoidCommissionPaid] = useState(false);
+  const [voidCommissionAmount, setVoidCommissionAmount] = useState(0);
 
   useEffect(() => {
     const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
@@ -491,6 +497,63 @@ export default function StaffBookingsPage() {
       );
     }
     api.updateBookingStatus(bookingId, "cancelled").catch(() => {});
+  };
+
+  // Open void confirmation panel — look up today's commission status for the therapist
+  const openVoid = async (bookingId: number) => {
+    const booking = bookings.find((b) => b.id === bookingId);
+    if (!booking) return;
+    const service = services.find((s) => s.id === booking.serviceId);
+    const amount = service
+      ? calcCommission({
+          price: service.price,
+          serviceNameTh: service.name.th,
+          customerGender: booking.customerGender,
+        })
+      : 0;
+    setVoidCommissionAmount(amount);
+
+    // Check whether the therapist's commission for the booking's date is already paid
+    const bookingDate = new Date(booking.startTime).toLocaleDateString("en-CA");
+    try {
+      const rows = await api.getCommissions(bookingDate);
+      const row = rows.find(
+        (r) => (r.therapist_id as number) === booking.therapistId,
+      );
+      setVoidCommissionPaid(row?.status === "paid");
+    } catch {
+      setVoidCommissionPaid(false);
+    }
+    setVoidBookingId(bookingId);
+  };
+
+  const cancelVoid = () => {
+    setVoidBookingId(null);
+    setVoidCommissionPaid(false);
+    setVoidCommissionAmount(0);
+  };
+
+  const confirmVoid = () => {
+    if (!voidBookingId) return;
+    const booking = bookings.find((b) => b.id === voidBookingId);
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.id === voidBookingId
+          ? { ...b, status: "cancelled" as Booking["status"] }
+          : b,
+      ),
+    );
+    if (booking?.bedId) {
+      setBeds((prev) =>
+        prev.map((bed) =>
+          bed.id === booking.bedId
+            ? { ...bed, status: "available" as const, currentBookingId: undefined }
+            : bed,
+        ),
+      );
+    }
+    api.updateBookingStatus(voidBookingId, "cancelled").catch(() => {});
+    cancelVoid();
   };
 
   const hasCustomer = selectedCustomer || (isNewCustomer && newCustomerName);
