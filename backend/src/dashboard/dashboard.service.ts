@@ -179,6 +179,10 @@ export class DashboardService {
     for (const t of (allTherapists as { id: number; name_th: string; name_en: string }[]) || []) {
       therapistById.set(t.id, t);
     }
+    console.log(`[getReport ${from}] allTherapists=${(allTherapists as unknown[])?.length || 0}, bookings=${bookings?.length || 0}`);
+    for (const b of (bookings as { id: number; therapist_id: number | null }[]) || []) {
+      console.log(`  booking ${b.id}: therapist_id=${b.therapist_id} -> tInfo=${b.therapist_id ? JSON.stringify(therapistById.get(b.therapist_id) || null) : "skip"}`);
+    }
 
     // 2. Summary
     let totalRevenue = 0;
