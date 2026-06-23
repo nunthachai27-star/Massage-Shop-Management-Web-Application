@@ -190,6 +190,28 @@ export class CleaningService {
     return { week_starts: weeks, count: roster.length };
   }
 
+  // Manually set the therapists assigned to one duty for one week (owner override).
+  // Replaces any existing assignments for that (week, duty). Empty list clears it.
+  async setAssignment(week: string, dutyId: number, therapistIds: number[]) {
+    const monday = mondayOf(week);
+    const client = this.supabase.getClient();
+    await client
+      .from("cleaning_assignments")
+      .delete()
+      .eq("week_start", monday)
+      .eq("duty_id", dutyId);
+
+    const unique = [...new Set(therapistIds)].filter((id) => Number.isInteger(id));
+    for (const tid of unique) {
+      await client.from("cleaning_assignments").insert({
+        week_start: monday,
+        duty_id: dutyId,
+        therapist_id: tid,
+      });
+    }
+    return this.getSchedule(monday);
+  }
+
   async notify(week: string) {
     const schedule = await this.getSchedule(week);
     const duties: DutyLine[] = schedule.duties.map((d) => ({

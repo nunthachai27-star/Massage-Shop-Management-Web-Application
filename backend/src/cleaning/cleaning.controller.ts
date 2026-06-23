@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Put,
   Delete,
   Param,
   Body,
@@ -16,6 +17,7 @@ import { CreateDutyDto } from "./dto/create-duty.dto";
 import { UpdateDutyDto } from "./dto/update-duty.dto";
 import { GenerateScheduleDto } from "./dto/generate-schedule.dto";
 import { NotifyScheduleDto } from "./dto/notify-schedule.dto";
+import { SetAssignmentDto } from "./dto/set-assignment.dto";
 
 @ApiTags("cleaning")
 @Roles("owner")
@@ -51,6 +53,11 @@ export class CleaningController {
   @Post("generate")
   generate(@Body() dto: GenerateScheduleDto) {
     return this.cleaning.generate(dto.startWeek);
+  }
+
+  @Put("assignment")
+  setAssignment(@Body() dto: SetAssignmentDto) {
+    return this.cleaning.setAssignment(dto.week, dto.duty_id, dto.therapist_ids);
   }
 
   @Post("notify")

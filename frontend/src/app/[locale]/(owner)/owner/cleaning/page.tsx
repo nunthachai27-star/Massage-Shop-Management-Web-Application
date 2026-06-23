@@ -52,6 +52,11 @@ export default function CleaningPage() {
   const [formName, setFormName] = useState("");
   const [formCount, setFormCount] = useState(1);
 
+  // Per-duty assignment edit state
+  const [allTherapists, setAllTherapists] = useState<Therapist[]>([]);
+  const [editDutyId, setEditDutyId] = useState<number | null>(null);
+  const [editIds, setEditIds] = useState<number[]>([]);
+
   const weekIso = toISODate(weeks[activeWeek]);
 
   const loadSchedule = useCallback(async () => {
@@ -74,12 +79,30 @@ export default function CleaningPage() {
     }
   }, []);
 
+  const loadTherapists = useCallback(async () => {
+    try {
+      const data = await api.getTherapists();
+      setAllTherapists(
+        (data as unknown as Therapist[]).map((th) => ({
+          id: th.id,
+          name_th: th.name_th,
+          name_en: th.name_en,
+        })),
+      );
+    } catch {
+      setAllTherapists([]);
+    }
+  }, []);
+
   useEffect(() => {
     loadSchedule();
   }, [loadSchedule]);
   useEffect(() => {
     loadDuties();
   }, [loadDuties]);
+  useEffect(() => {
+    loadTherapists();
+  }, [loadTherapists]);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -143,6 +166,34 @@ export default function CleaningPage() {
     } catch {
       // ignore
     }
+  };
+
+  const openEdit = (d: DutyView) => {
+    const ids = d.therapists.map((th) => th.id);
+    const padded = Array.from({ length: d.required_count }, (_, i) => ids[i] ?? 0);
+    setEditIds(padded);
+    setEditDutyId(d.id);
+  };
+
+  const cancelEdit = () => {
+    setEditDutyId(null);
+    setEditIds([]);
+  };
+
+  const changeEditId = (slot: number, value: number) => {
+    setEditIds((prev) => prev.map((v, i) => (i === slot ? value : v)));
+  };
+
+  const saveEdit = async () => {
+    if (editDutyId == null) return;
+    const ids = editIds.filter((id) => id > 0);
+    try {
+      const data = (await api.setCleaningAssignment(weekIso, editDutyId, ids)) as unknown as Schedule;
+      setSchedule(data);
+    } catch {
+      // ignore
+    }
+    cancelEdit();
   };
 
   const therapistName = (th: Therapist) => (locale === "th" ? th.name_th : th.name_en);
@@ -209,15 +260,59 @@ export default function CleaningPage() {
                   🧹
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-white font-semibold text-sm">{d.name}</h3>
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="text-white font-semibold text-sm">{d.name}</h3>
+                    {editDutyId !== d.id && (
+                      <button
+                        onClick={() => openEdit(d)}
+                        className="px-2.5 py-1 rounded-lg text-xs bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-all cursor-pointer shrink-0"
+                      >
+                        {t("editAssignment")}
+                      </button>
+                    )}
+                  </div>
                   <p className="text-white/40 text-xs mt-0.5">
                     {d.required_count} {t("people")}
                   </p>
-                  <p className="text-accent-gold text-sm mt-1">
-                    {d.therapists.length
-                      ? d.therapists.map(therapistName).join(", ")
-                      : t("empty")}
-                  </p>
+                  {editDutyId === d.id ? (
+                    <div className="mt-2 space-y-2">
+                      {editIds.map((sel, i) => (
+                        <select
+                          key={i}
+                          value={sel}
+                          onChange={(e) => changeEditId(i, Number(e.target.value))}
+                          className="w-full bg-surface-dark border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
+                        >
+                          <option value={0}>{t("noOne")}</option>
+                          {allTherapists.map((th) => (
+                            <option key={th.id} value={th.id}>
+                              {therapistName(th)}
+                            </option>
+                          ))}
+                        </select>
+                      ))}
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={saveEdit}
+                          className="px-4 py-1.5 rounded-lg text-xs bg-accent-gold text-primary-dark font-medium hover:bg-accent-gold-dark transition-all cursor-pointer"
+                        >
+                          {t("save")}
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="px-4 py-1.5 rounded-lg text-xs bg-white/10 text-white/60 hover:bg-white/20 transition-all cursor-pointer"
+                        >
+                          {t("cancel")}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-accent-gold text-sm mt-1">
+                      {d.therapists.length
+                        ? d.therapists.map(therapistName).join(", ")
+                        : t("empty")}
+                    </p>
+                  )}
                 </div>
               </div>
             </Card>

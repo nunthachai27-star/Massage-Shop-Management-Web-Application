@@ -147,6 +147,11 @@ export const api = {
     apiFetch<ApiRecord>(`/cleaning/schedule?week=${week}`),
   generateCleaningSchedule: (startWeek: string) =>
     apiFetch<ApiRecord>("/cleaning/generate", { method: "POST", body: JSON.stringify({ startWeek }) }),
+  setCleaningAssignment: (week: string, dutyId: number, therapistIds: number[]) =>
+    apiFetch<ApiRecord>("/cleaning/assignment", {
+      method: "PUT",
+      body: JSON.stringify({ week, duty_id: dutyId, therapist_ids: therapistIds }),
+    }),
   notifyCleaningSchedule: (week: string) =>
     apiFetch<ApiRecord>("/cleaning/notify", { method: "POST", body: JSON.stringify({ week }) }),
 

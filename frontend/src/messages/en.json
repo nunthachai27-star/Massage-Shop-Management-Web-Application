@@ -134,7 +134,10 @@
     "requiredCount": "People needed",
     "save": "Save",
     "cancel": "Cancel",
-    "staffHint": "Add/edit/remove staff on the \"Staff\" page"
+    "staffHint": "Add/edit/remove staff on the \"Staff\" page",
+    "editAssignment": "Edit therapists",
+    "selectTherapist": "— Select therapist —",
+    "noOne": "— Empty —"
   },
   "auth": {
     "staffLogin": "Staff Login",
