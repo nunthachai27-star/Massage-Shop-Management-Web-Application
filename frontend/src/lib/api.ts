@@ -135,6 +135,21 @@ export const api = {
       body: JSON.stringify({ message }),
     }),
 
+  // Cleaning schedule
+  getCleaningDuties: () => apiFetch<ApiRecord[]>("/cleaning/duties"),
+  createCleaningDuty: (data: { name: string; required_count?: number; sort_order?: number }) =>
+    apiFetch<ApiRecord>("/cleaning/duties", { method: "POST", body: JSON.stringify(data) }),
+  updateCleaningDuty: (id: number, data: Record<string, unknown>) =>
+    apiFetch<ApiRecord>(`/cleaning/duties/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteCleaningDuty: (id: number) =>
+    apiFetch<ApiRecord>(`/cleaning/duties/${id}`, { method: "DELETE" }),
+  getCleaningSchedule: (week: string) =>
+    apiFetch<ApiRecord>(`/cleaning/schedule?week=${week}`),
+  generateCleaningSchedule: (startWeek: string) =>
+    apiFetch<ApiRecord>("/cleaning/generate", { method: "POST", body: JSON.stringify({ startWeek }) }),
+  notifyCleaningSchedule: (week: string) =>
+    apiFetch<ApiRecord>("/cleaning/notify", { method: "POST", body: JSON.stringify({ week }) }),
+
   // Auth
   pinLogin: (pin: string) =>
     apiFetch<ApiRecord>("/auth/pin-login", {
