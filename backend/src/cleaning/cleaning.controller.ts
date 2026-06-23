@@ -45,6 +45,8 @@ export class CleaningController {
     return this.cleaning.removeDuty(id);
   }
 
+  // Therapists may view the schedule (read-only); all other actions stay owner-only.
+  @Roles("owner", "therapist")
   @Get("schedule")
   getSchedule(@Query("week") week: string) {
     return this.cleaning.getSchedule(week);

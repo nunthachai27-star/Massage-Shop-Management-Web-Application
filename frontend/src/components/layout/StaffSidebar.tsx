@@ -10,6 +10,7 @@ const navItems = [
   { href: "/staff/session", labelKey: "staff.session", shortLabel: { th: "ทำงาน", en: "Work" }, icon: "⏱️" },
   { href: "/staff/bookings", labelKey: "staff.bookings", shortLabel: { th: "จอง", en: "Book" }, icon: "📋" },
   { href: "/staff/attendance", labelKey: "attendance.checkin", shortLabel: { th: "เข้างาน", en: "Clock" }, icon: "📍" },
+  { href: "/staff/cleaning", labelKey: "cleaning.myTitle", shortLabel: { th: "เวร", en: "Duty" }, icon: "🧹" },
 ];
 
 export function StaffSidebar() {
@@ -58,7 +59,7 @@ export function StaffSidebar() {
 
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-primary-dark/95 backdrop-blur-sm border-t border-accent-gold/20">
-        <div className="grid grid-cols-4 py-1 px-0.5">
+        <div className="grid grid-cols-5 py-1 px-0.5">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (

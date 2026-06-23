@@ -137,7 +137,13 @@
     "staffHint": "Add/edit/remove staff on the \"Staff\" page",
     "editAssignment": "Edit therapists",
     "selectTherapist": "— Select therapist —",
-    "noOne": "— Empty —"
+    "noOne": "— Empty —",
+    "myTitle": "My Duty",
+    "you": "You",
+    "myDutyThisWeek": "Your duty this week",
+    "youAreBackup": "You are backup / inspection this week",
+    "notAssignedThisWeek": "No duty for you this week",
+    "noScheduleStaff": "No roster yet. Please contact the owner."
   },
   "auth": {
     "staffLogin": "Staff Login",
