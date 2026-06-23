@@ -15,6 +15,7 @@ import { DashboardModule } from "./dashboard/dashboard.module";
 import { AuthModule } from "./auth/auth.module";
 import { CommissionsModule } from "./commissions/commissions.module";
 import { LineNotifyModule } from "./line-notify/line-notify.module";
+import { CleaningModule } from "./cleaning/cleaning.module";
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { LineNotifyModule } from "./line-notify/line-notify.module";
     AuthModule,
     CommissionsModule,
     LineNotifyModule,
+    CleaningModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
