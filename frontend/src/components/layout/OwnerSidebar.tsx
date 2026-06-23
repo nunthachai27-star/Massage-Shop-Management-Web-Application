@@ -12,6 +12,7 @@ const navItems = [
   { href: "/owner/therapists", labelKey: "owner.therapistPerformance", shortLabel: { th: "ผลงาน", en: "Perform" }, icon: "👥" },
   { href: "/owner/manage-therapists", labelKey: "owner.manageTherapists", shortLabel: { th: "พนักงาน", en: "Staff" }, icon: "🩺" },
   { href: "/owner/services", labelKey: "owner.manageServices", shortLabel: { th: "บริการ", en: "Service" }, icon: "💆" },
+  { href: "/owner/cleaning", labelKey: "cleaning.title", shortLabel: { th: "เวร", en: "Clean" }, icon: "🧹" },
 ];
 
 export function OwnerSidebar() {
@@ -60,7 +61,7 @@ export function OwnerSidebar() {
 
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-primary-dark/95 backdrop-blur-sm border-t border-accent-gold/20">
-        <div className="grid grid-cols-6 py-1 px-0.5">
+        <div className="grid grid-cols-7 py-1 px-0.5">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (
